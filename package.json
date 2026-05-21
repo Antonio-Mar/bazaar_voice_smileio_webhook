@@ -7,6 +7,7 @@
     "@types/node": "^25.9.1"
   },
   "scripts": {
-    "validate": "npx ts-node src/library/validatePayload.ts"
+    "validate": "npx ts-node src/library/validate.ts",
+    "normalize": "npx ts-node src/library/testNormalizer.ts"
   }
 }
