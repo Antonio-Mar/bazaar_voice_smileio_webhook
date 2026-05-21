@@ -1,0 +1,13 @@
+{
+  "eventType": "review.approved",
+  "brand": "brandA",
+  "source": "bazaarvoice",
+  "reviewId": "12345",
+  "customerEmail": "user@email.com",
+  "productId": "sku123",
+  "occurredAt": "2026-05-19T12:00:00Z",
+  "metadata": {
+    "locale": "en_US",
+    "rating": 5
+  }
+}
