@@ -9,6 +9,7 @@
   "scripts": {
     "validate": "npx ts-node src/library/validatePayload.ts",
     "normalize": "npx ts-node src/library/testNormalizer.ts",
-    "idempotency": "npx ts-node src/library/testProcessor.ts"
+    "idempotency": "npx ts-node src/library/testProcessor.ts",
+    "reward": "npx ts-node src/library/testRewardEngine.ts"
   }
 }
