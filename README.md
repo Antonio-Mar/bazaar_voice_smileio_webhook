@@ -2,5 +2,11 @@
 Creating a webhook using typescript to allow users to get points on smile.io when they leave a review for a product they are awarded points in smile.io.
 
 
-# testing payload
-npm run validate to test for payload 
+# TESTING PAYLOAD VALIDATION
+npm run validate
+
+# TESING BV CONVERSION TO MATCH OUR PAYLOAD
+npm run normalize
+
+# TESTING FOR DUPLICATE (IDEMPOTENCY)
+npm run idempotency
