@@ -1,5 +1,5 @@
 import { transformToInternalEvent } from "../normalizers/bazaarvoice.normalizer";
-import { evaluateReward } from "./rewardEngine";
+import { calculateReward } from "./rewardEngine";
 
 const rawPayload = {
   event: "review_approved",
@@ -18,6 +18,6 @@ const rawPayload = {
 
 const event = transformToInternalEvent(rawPayload);
 
-const decision = evaluateReward(event);
+const decision = calculateReward(event);
 
 console.log(decision);

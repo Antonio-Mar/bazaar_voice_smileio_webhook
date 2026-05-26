@@ -6,7 +6,7 @@ export type RewardDecision = {
   reason: string;
 };
 
-export function evaluateReward(event: EventPayload): RewardDecision {
+export function calculateReward(event: EventPayload): RewardDecision {
   switch (event.eventType) {
     case "review.approved":
       return {

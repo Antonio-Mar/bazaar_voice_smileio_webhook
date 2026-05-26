@@ -10,6 +10,7 @@
     "validate": "npx ts-node src/library/validatePayload.ts",
     "normalize": "npx ts-node src/library/testNormalizer.ts",
     "idempotency": "npx ts-node src/library/testProcessor.ts",
-    "reward": "npx ts-node src/library/testRewardEngine.ts"
+    "reward": "npx ts-node src/library/testRewardEngine.ts",
+    "webhook-test": "npx ts-node src/library/testWebhook.ts"
   }
 }

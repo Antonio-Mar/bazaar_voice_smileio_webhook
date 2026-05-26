@@ -10,3 +10,6 @@ npm run normalize
 
 # TESTING FOR DUPLICATE (IDEMPOTENCY)
 npm run idempotency
+
+# TESTING REWARD ENGINE 
+npm run reward
