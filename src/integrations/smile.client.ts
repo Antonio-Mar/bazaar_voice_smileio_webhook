@@ -1,15 +1,13 @@
 import { logEvent, logError } from "../library/logger";
 
 type AwardSmilePointsInput = {
-  customerEmail: string;
+  customerId: number;
   points: number;
-  reason?: string;
 };
 
 export async function awardSmilePoints({
-  customerEmail,
+  customerId,
   points,
-  reason,
 }: AwardSmilePointsInput) {
   const endpoint = process.env.SMILE_API_URL;
   const apiKey = process.env.SMILE_API_KEY;
@@ -18,18 +16,31 @@ export async function awardSmilePoints({
     throw new Error("Missing Smile API configuration");
   }
 
-  const response = await fetch(`${endpoint}/points`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+  const payload = {
+    points_transaction: {
+      customer_id: customerId,
+      points_change: points,
+      description: "BazaarVoice Review",
+      internal_note: "BazaarVoice Review",
     },
-    body: JSON.stringify({
-      customer_email: customerEmail,
-      points,
-      reason: reason ?? "bazaarvoice_review",
-    }),
-  });
+  };
+
+  console.log(
+    "Smile Payload:",
+    JSON.stringify(payload, null, 2)
+  );
+
+  const response = await fetch(
+    `${endpoint}/points_transactions`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(payload),
+    }
+  );
 
   if (!response.ok) {
     const text = await response.text();

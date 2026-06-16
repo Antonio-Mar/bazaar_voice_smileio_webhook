@@ -2,6 +2,7 @@ import type { EventPayload } from "../schemas/event.schema";
 import { shouldProcessEvent } from "./idempotency";
 import { calculateReward } from "./rewardEngine";
 import { awardSmilePoints } from "../integrations/smile.client";
+import { getSmileCustomerByEmail } from "../integrations/smile.customer";
 
 export async function processEvent(event: EventPayload) {
     // 1. Idempotency gate
@@ -17,10 +18,13 @@ export async function processEvent(event: EventPayload) {
 
     // 3. Side effect (Smile)
     if (reward.points > 0) {
+        const customer = await getSmileCustomerByEmail(
+            event.customerEmail
+        );
+
         await awardSmilePoints({
-            customerEmail: event.customerEmail,
+            customerId: customer.id,
             points: reward.points,
-            reason: reward.reason,
         });
     }
 
