@@ -1,24 +1,21 @@
+import { getBrandConfig } from "../config/getBrandConfig";
 import type { EventPayload } from "../schemas/event.schema";
 
-export type RewardDecision = {
-  shouldReward: boolean;
-  points: number;
-  reason: string;
-};
+export function calculateReward(event: EventPayload) {
+  const config = getBrandConfig(event.brand);
 
-export function calculateReward(event: EventPayload): RewardDecision {
   switch (event.eventType) {
     case "review.approved":
       return {
         shouldReward: true,
-        points: 50,
+        points: config.rewards.reviewApproved,
         reason: "Approved review",
       };
 
     case "review.edited":
       return {
         shouldReward: true,
-        points: 10,
+        points: config.rewards.reviewEdited,
         reason: "Edited review",
       };
 

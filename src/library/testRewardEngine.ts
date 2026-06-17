@@ -1,5 +1,6 @@
 import { transformToInternalEvent } from "../normalizers/bazaarvoice.normalizer";
 import { calculateReward } from "./rewardEngine";
+import { getBrandConfig } from "../config/getBrandConfig";
 
 const rawPayload = {
   event: "review_approved",
@@ -15,6 +16,7 @@ const rawPayload = {
     email: "test@example.com",
   },
 };
+
 
 const event = transformToInternalEvent(rawPayload);
 

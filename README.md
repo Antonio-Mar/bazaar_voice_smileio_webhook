@@ -13,3 +13,6 @@ npm run idempotency
 
 # TESTING REWARD ENGINE 
 npm run reward
+
+# TESTING WEBHOOK 
+npm run webhook-test
