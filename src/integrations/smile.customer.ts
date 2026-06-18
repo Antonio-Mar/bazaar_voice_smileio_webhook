@@ -1,36 +1,35 @@
-type SmileCustomer = {
-  id: number;
-  email: string;
-};
+import dotenv from "dotenv";
 
-export async function getSmileCustomerByEmail(
-  email: string
-): Promise<SmileCustomer> {
+dotenv.config();
+
+export async function getSmileCustomerByEmail(email: string) {
   const endpoint = process.env.SMILE_API_URL;
   const apiKey = process.env.SMILE_API_KEY;
 
-  const response = await fetch(
-    `${endpoint}/customers?limit=1&email=${encodeURIComponent(email)}`,
-    {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-    }
-  );
+  if (!endpoint || !apiKey) {
+    throw new Error("Missing Smile API configuration");
+  }
 
-  if (!response.ok) {
+  const url =
+    `${endpoint}/customers?limit=1&email=${encodeURIComponent(email)}`;
+
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
+  });
+
+  const data = await res.json();
+
+  console.log("Smile Customer Search:", JSON.stringify(data, null, 2));
+
+  const customer = data.customers?.[0];
+
+  if (!customer) {
     throw new Error(
-      `Failed to lookup Smile customer for ${email}`
+      `No Smile customer found for email: ${email}`
     );
   }
 
-  const data = await response.json();
-
-  if (!data.customers?.length) {
-    throw new Error(
-      `Smile customer not found for ${email}`
-    );
-  }
-
-  return data.customers[0];
+  return customer;
 }

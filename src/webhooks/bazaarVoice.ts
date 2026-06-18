@@ -1,7 +1,6 @@
 import { transformToInternalEvent } from "../normalizers/bazaarvoice.normalizer";
 import { processEvent } from "../library/processEvent";
 
-
 export async function handleBazaarvoiceWebhook(rawPayload: any) {
   try {
     // 1. Normalize

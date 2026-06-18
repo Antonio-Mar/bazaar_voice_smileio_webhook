@@ -1,4 +1,7 @@
 import { logEvent, logError } from "../library/logger";
+import dotenv from "dotenv"
+
+dotenv.config()
 
 type AwardSmilePointsInput = {
   customerId: number;

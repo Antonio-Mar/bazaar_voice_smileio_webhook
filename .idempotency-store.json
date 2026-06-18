@@ -1,0 +1,8 @@
+{
+  "bazaarvoice:rev_123:review.approved": true,
+  "bazaarvoice:rev_1233:review.approved": true,
+  "bazaarvoice:rev_12332:review.approved": true,
+  "bazaarvoice:rev_duplicate_test:review.approved": true,
+  "bazaarvoice:testing new email:review.approved": true,
+  "bazaarvoice:BVreview00001:review.approved": true
+}

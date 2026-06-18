@@ -1,5 +1,5 @@
 import { createEventKey } from "./eventKey";
-import { hasProcessed, markProcessed } from "./idempotencyStore";
+import { hasProcessed } from "./idempotencyStore";
 import { EventPayload } from "../schemas/event.schema";
 
 export function shouldProcessEvent(event: EventPayload): boolean {
@@ -9,10 +9,5 @@ export function shouldProcessEvent(event: EventPayload): boolean {
     event.eventType
   );
 
-  if (hasProcessed(key)) {
-    return false;
-  }
-
-  markProcessed(key);
-  return true;
+  return !hasProcessed(key);
 }
