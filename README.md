@@ -16,3 +16,6 @@ npm run reward
 
 # TESTING WEBHOOK 
 npm run webhook-test
+
+# LIVE TESTING FOR IDEMPOTENCY (ACTUALLY GIVES POINTS)
+npm run live-idemopency

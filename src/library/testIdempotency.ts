@@ -24,9 +24,6 @@ async function run() {
 
   console.log("FIRST RUN");
   console.log(await processEvent(event));
-
-  console.log("SECOND RUN");
-  console.log(await processEvent(event));
 }
 
 run();
