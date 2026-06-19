@@ -1,35 +1,42 @@
-import dotenv from "dotenv";
+import { getSmileConfig } from "../config/smileConfig";
+import type { Brand } from "../config/smileConfig";
 
-dotenv.config();
+export async function getSmileCustomerByEmail(
+    email: string,
+    brand: Brand,
+) {
+    const endpoint = process.env.SMILE_API_URL;
+    const config = getSmileConfig(brand);
+    const apiKey = config.apiKey;
 
-export async function getSmileCustomerByEmail(email: string) {
-  const endpoint = process.env.SMILE_API_URL;
-  const apiKey = process.env.SMILE_API_KEY;
+    if (!endpoint) {
+        throw new Error("Missing SMILE_API_URL");
+    }
 
-  if (!endpoint || !apiKey) {
-    throw new Error("Missing Smile API configuration");
-  }
+    if (!apiKey) {
+        throw new Error(`Missing API key for brand: ${brand}`);
+    }
 
-  const url =
-    `${endpoint}/customers?limit=1&email=${encodeURIComponent(email)}`;
+    const url =
+        `${endpoint}/customers?limit=1&email=${encodeURIComponent(email)}`;
 
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-    },
-  });
+    const res = await fetch(url, {
+        headers: {
+            Authorization: `Bearer ${apiKey}`,
+        },
+    });
 
-  const data = await res.json();
+    const data = await res.json();
 
-  console.log("Smile Customer Search:", JSON.stringify(data, null, 2));
+    console.log("Smile Customer Search:", JSON.stringify(data, null, 2));
 
-  const customer = data.customers?.[0];
+    const customer = data.customers?.[0];
 
-  if (!customer) {
-    throw new Error(
-      `No Smile customer found for email: ${email}`
-    );
-  }
+    if (!customer) {
+        throw new Error(
+            `No Smile customer found for email: ${email}`
+        );
+    }
 
-  return customer;
+    return customer;
 }

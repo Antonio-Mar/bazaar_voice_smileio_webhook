@@ -6,6 +6,7 @@ import type {
 
 import { transformToInternalEvent } from "../../src/normalizers/bazaarvoice.normalizer";
 import { processEvent } from "../../src/library/processEvent";
+import "dotenv/config";
 
 export const handler: Handler = async (
   event: HandlerEvent

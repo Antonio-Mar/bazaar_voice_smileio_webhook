@@ -5,9 +5,7 @@ import { calculateReward } from "./rewardEngine";
 import { awardSmilePoints } from "../integrations/smile.client";
 import { getSmileCustomerByEmail } from "../integrations/smile.customer";
 import { logEvent } from "../logging/logger";
-import dotenv from "dotenv"
 
-dotenv.config()
 
 export async function processEvent(event: EventPayload) {
     const key = createEventKey(
@@ -66,9 +64,10 @@ export async function processEvent(event: EventPayload) {
         };
     }
 
+
     try {
         // 5. Customer lookup
-        const customer = await getSmileCustomerByEmail(event.customerEmail);
+        const customer = await getSmileCustomerByEmail(event.customerEmail, event.brand);
 
         logEvent({
             timestamp,

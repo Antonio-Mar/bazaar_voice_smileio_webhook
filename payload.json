@@ -1,8 +1,8 @@
 {
   "eventType": "review.approved",
-  "brand": "brandA",
+  "brand": "rocky",
   "source": "bazaarvoice",
-  "reviewId": "12345",
+  "reviewId": "1212",
   "customerEmail": "Antonio.Marino@Rockybrands.com",
   "productId": "sku123",
   "occurredAt": "2026-05-19T12:00:00Z",

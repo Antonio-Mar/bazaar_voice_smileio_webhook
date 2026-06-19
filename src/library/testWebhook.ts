@@ -1,5 +1,6 @@
 import { handleBazaarvoiceWebhook } from "../webhooks/bazaarVoice";
 import "dotenv/config";
+import "./bootstrap"
 
 const mockPayload = {
   event: "review_approved",

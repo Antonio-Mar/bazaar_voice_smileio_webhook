@@ -1,15 +1,13 @@
 import { transformToInternalEvent } from "../normalizers/bazaarvoice.normalizer";
 import { processEvent } from "./processEvent";
-import dotenv from "dotenv"
-
-dotenv.config()
+import "./bootstrap";
 
 const rawPayload = {
   event: "review_approved",
-  brand: "rocky",
+  brand: "georgia",
   review: {
-    id: "BVreview00001",
-    productId: "sku_987",
+    id: "BVreview00004",
+    productId: "DB300536",
     rating: 5,
     locale: "en_US",
     createdAt: "2026-05-21T16:00:00Z",

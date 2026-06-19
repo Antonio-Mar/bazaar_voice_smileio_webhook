@@ -1,9 +1,6 @@
 import { logEvent, logError } from "../library/logger";
-import dotenv from "dotenv"
-import { smileConfig } from "../config/smileConfig";
+import { getSmileConfig } from "../config/smileConfig";
 import type { Brand } from "../config/smileConfig";
-
-dotenv.config()
 
 type AwardSmilePointsInput = {
   customerId: number;
@@ -17,7 +14,8 @@ export async function awardSmilePoints(
   input: AwardSmilePointsInput
 ) {
   const endpoint = process.env.SMILE_API_URL;
-  const apiKey = smileConfig[brand].apiKey;
+  const config = getSmileConfig(brand);
+  const apiKey = config.apiKey;
 
   if (!endpoint || !apiKey) {
     throw new Error(`Missing Smile config for brand: ${brand}`);

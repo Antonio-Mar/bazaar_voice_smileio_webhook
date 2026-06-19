@@ -1,5 +1,6 @@
 import { transformToInternalEvent } from "../normalizers/bazaarvoice.normalizer";
 import { shouldProcessEvent } from "./idempotency";
+import "./bootstrap"
 
 const rawPayload = {
   event: "review_approved",

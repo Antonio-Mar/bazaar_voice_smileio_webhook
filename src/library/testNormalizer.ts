@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { transformToInternalEvent } from "../normalizers/bazaarvoice.normalizer";
+import "./bootstrap"
 
 const filePath = path.resolve("bv-payload.json");
 const raw = fs.readFileSync(filePath, "utf-8");

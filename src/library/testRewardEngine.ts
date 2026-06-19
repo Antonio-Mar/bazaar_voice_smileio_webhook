@@ -1,6 +1,7 @@
 import { transformToInternalEvent } from "../normalizers/bazaarvoice.normalizer";
 import { calculateReward } from "./rewardEngine";
 import { getBrandConfig } from "../config/getBrandConfig";
+import "./bootstrap"
 
 const rawPayload = {
   event: "review_approved",
