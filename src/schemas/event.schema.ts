@@ -1,8 +1,15 @@
 import { z } from "zod";
+import type { Brand } from "../config/smileConfig";
 
 export const EventSchema = z.object({
   eventType: z.string(),
-  brand: z.string(),
+  brand: z.enum([
+    "rocky",
+    "georgia",
+    "durango",
+    "muck",
+    "xtratuf",
+  ]),
   source: z.string(),
   reviewId: z.string(),
   customerEmail: z.string().email(),

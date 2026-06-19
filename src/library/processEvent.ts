@@ -81,7 +81,7 @@ export async function processEvent(event: EventPayload) {
         });
 
         // 6. Award points
-        await awardSmilePoints({
+        await awardSmilePoints(event.brand, {
             customerId: customer.id,
             points: reward.points,
         });

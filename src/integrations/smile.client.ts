@@ -1,49 +1,45 @@
 import { logEvent, logError } from "../library/logger";
 import dotenv from "dotenv"
+import { smileConfig } from "../config/smileConfig";
+import type { Brand } from "../config/smileConfig";
 
 dotenv.config()
 
 type AwardSmilePointsInput = {
   customerId: number;
   points: number;
+  description?: string;
+  internalNote?: string;
 };
 
-export async function awardSmilePoints({
-  customerId,
-  points,
-}: AwardSmilePointsInput) {
+export async function awardSmilePoints(
+  brand: Brand,
+  input: AwardSmilePointsInput
+) {
   const endpoint = process.env.SMILE_API_URL;
-  const apiKey = process.env.SMILE_API_KEY;
+  const apiKey = smileConfig[brand].apiKey;
 
   if (!endpoint || !apiKey) {
-    throw new Error("Missing Smile API configuration");
+    throw new Error(`Missing Smile config for brand: ${brand}`);
   }
 
   const payload = {
     points_transaction: {
-      customer_id: customerId,
-      points_change: points,
-      description: "BazaarVoice Review",
-      internal_note: "BazaarVoice Review",
+      customer_id: input.customerId,
+      points_change: input.points,
+      description: input.description ?? "BazaarVoice Review",
+      internal_note: input.internalNote ?? "BazaarVoice Review",
     },
   };
 
-  console.log(
-    "Smile Payload:",
-    JSON.stringify(payload, null, 2)
-  );
-
-  const response = await fetch(
-    `${endpoint}/points_transactions`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(payload),
-    }
-  );
+  const response = await fetch(`${endpoint}/points_transactions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(payload),
+  });
 
   if (!response.ok) {
     const text = await response.text();
