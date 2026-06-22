@@ -5,7 +5,7 @@ import "./bootstrap"
 
 const rawPayload = {
   event: "review_approved",
-  brand: "brandA",
+  brand: "rocky",
   review: {
     id: "rev_123",
     productId: "sku_987",

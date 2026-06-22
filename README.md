@@ -18,7 +18,7 @@ npm run reward
 npm run webhook-test
 
 # LIVE TESTING FOR IDEMPOTENCY (ACTUALLY GIVES POINTS)
-npm run live-idemopency
+npm run live-idempotency
 
 # BUILD NETLIFY 
 npm run build

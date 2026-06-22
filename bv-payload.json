@@ -1,6 +1,6 @@
 {
   "event": "review_approved",
-  "brand": "brandA",
+  "brand": "rocky",
   "review": {
     "id": "rev_12346",
     "productId": "sku_989",

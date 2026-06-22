@@ -1,5 +1,6 @@
 import type { EventPayload } from "../schemas/event.schema";
-import { hasProcessed, markProcessed } from "./idempotencyStore";
+import { shouldProcessEvent } from "./idempotency";
+import { tryMarkProcessed } from "./idempotencyStore"
 import { createEventKey } from "./eventKey";
 import { calculateReward } from "./rewardEngine";
 import { awardSmilePoints } from "../integrations/smile.client";
@@ -27,7 +28,9 @@ export async function processEvent(event: EventPayload) {
     });
 
     // 2. Idempotency gate
-    if (hasProcessed(key)) {
+    const shouldProcess = await shouldProcessEvent(event);
+
+    if (!shouldProcess) {
         logEvent({
             timestamp,
             reviewId: event.reviewId,
@@ -42,6 +45,12 @@ export async function processEvent(event: EventPayload) {
             reason: "duplicate_event",
         };
     }
+
+    const result1 = await processEvent(event);
+    console.log(result1);
+
+    const result2 = await processEvent(event);
+    console.log(result2);
 
     // 3. Calculate reward
     const reward = calculateReward(event);
@@ -86,7 +95,7 @@ export async function processEvent(event: EventPayload) {
         });
 
         // ONLY after success
-        markProcessed(key);
+        tryMarkProcessed(key);
 
         logEvent({
             timestamp,

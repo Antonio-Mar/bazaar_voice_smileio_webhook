@@ -6,14 +6,14 @@ const rawPayload = {
   event: "review_approved",
   brand: "georgia",
   review: {
-    id: "BVreview00004",
+    id: "BVreview00005",
     productId: "DB300536",
     rating: 5,
     locale: "en_US",
     createdAt: "2026-05-21T16:00:00Z",
   },
   customer: {
-    email: "crispy1260@yahoo.com",
+    email: "antonio.marino@Rockybrands.com",
   },
 };
 

@@ -20,7 +20,7 @@ export function transformToInternalEvent(
 ): EventPayload {
   const normalizedEvent = {
     eventType: mapEventType(payload.event),
-    brand: payload.brand,
+    brand: payload.brand.toLowerCase(),
     source: "bazaarvoice",
     reviewId: payload.review.id,
     customerEmail: payload.customer.email,

@@ -1,30 +1,14 @@
-import fs from "fs";
-import path from "path";
-import { createEventKey } from "./eventKey";
+import { redis } from "../integrations/redis";
 
-const filePath = path.resolve(".idempotency-store.json");
+const TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
-function readStore(): Record<string, boolean> {
+export async function tryMarkProcessed(
+  key: string
+): Promise<boolean> {
+  const result = await redis.set(key, 1, {
+    nx: true,
+    ex: TTL_SECONDS,
+  });
 
-  try {
-    if (!fs.existsSync(filePath)) return {};
-    return JSON.parse(fs.readFileSync(filePath, "utf-8"));
-  } catch {
-    return {};
-  }
-}
-
-function writeStore(store: Record<string, boolean>) {
-  fs.writeFileSync(filePath, JSON.stringify(store, null, 2));
-}
-
-export function hasProcessed(key: string): boolean {
-  const store = readStore();
-  return !!store[key];
-}
-
-export function markProcessed(key: string): void {
-  const store = readStore();
-  store[key] = true;
-  writeStore(store);
+  return result === "OK";
 }

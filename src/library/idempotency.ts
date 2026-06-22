@@ -1,13 +1,13 @@
 import { createEventKey } from "./eventKey";
-import { hasProcessed } from "./idempotencyStore";
 import { EventPayload } from "../schemas/event.schema";
+import { tryMarkProcessed } from "./idempotencyStore";
 
-export function shouldProcessEvent(event: EventPayload): boolean {
+export async function shouldProcessEvent(event: EventPayload): Promise<boolean> {
   const key = createEventKey(
     event.source,
     event.reviewId,
     event.eventType
   );
 
-  return !hasProcessed(key);
+  return await tryMarkProcessed(key);
 }
