@@ -1,41 +1,21 @@
-import type {
-  Handler,
-  HandlerEvent,
-  HandlerResponse
-} from "@netlify/functions";
-
-import { transformToInternalEvent } from "../../src/normalizers/bazaarvoice.normalizer";
 import { processEvent } from "../../src/library/processEvent";
-import "dotenv/config";
 
-export const handler: Handler = async (
-  event: HandlerEvent
-): Promise<HandlerResponse> => {
+export const handler = async (event: any) => {
   try {
     const body = JSON.parse(event.body || "{}");
 
-    const internalEvent =
-      transformToInternalEvent(body);
-
-    const result =
-      await processEvent(internalEvent);
+    const result = await processEvent(body);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        success: true,
-        result,
-      }),
+      body: JSON.stringify(result),
     };
-  } catch (error) {
+  } catch (err) {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        success: false,
         error:
-          error instanceof Error
-            ? error.message
-            : "Unknown error",
+          err instanceof Error ? err.message : "Unknown error",
       }),
     };
   }
