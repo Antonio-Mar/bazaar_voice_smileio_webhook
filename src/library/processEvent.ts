@@ -46,12 +46,6 @@ export async function processEvent(event: EventPayload) {
         };
     }
 
-    const result1 = await processEvent(event);
-    console.log(result1);
-
-    const result2 = await processEvent(event);
-    console.log(result2);
-
     // 3. Calculate reward
     const reward = calculateReward(event);
 
@@ -93,9 +87,6 @@ export async function processEvent(event: EventPayload) {
             customerId: customer.id,
             points: reward.points,
         });
-
-        // ONLY after success
-        tryMarkProcessed(key);
 
         logEvent({
             timestamp,
