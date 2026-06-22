@@ -1,8 +1,8 @@
 {
-  "event": "review_approved",
+  "event": "review_edited",
   "brand": "durango",
   "review": {
-    "id": "BV00001",
+    "id": "BV00001-A",
     "productId": "DB5554",
     "rating": 5,
     "locale": "en_US",
