@@ -6,6 +6,7 @@ import { calculateReward } from "./rewardEngine";
 import { awardSmilePoints } from "../integrations/smile.client";
 import { getSmileCustomerByEmail } from "../integrations/smile.customer";
 import { getBazaarvoiceCustomerEmail } from "../integrations/bazaarvoice.customer";
+import { decryptEmail } from "../integrations/bazaarvoiceEmail";
 import { logEvent } from "../logging/logger";
 
 export async function processEvent(event: EventPayload) {
@@ -61,7 +62,16 @@ export async function processEvent(event: EventPayload) {
 
   try {
     // 5. Customer lookup
-    const customerEmail = await getBazaarvoiceCustomerEmail(event.reviewId);
+
+    if (!event.encryptedEmail) {
+      throw new Error("Missing encrypted email in webhook payload");
+    }
+
+    if (!event.encryptedEmail) {
+      throw new Error("Missing encrypted email in webhook payload");
+    }
+
+    const customerEmail = decryptEmail(event.encryptedEmail);
 
     const customer = await getSmileCustomerByEmail(customerEmail, event.brand);
 

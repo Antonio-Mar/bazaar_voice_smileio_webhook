@@ -21,17 +21,21 @@ export function transformToInternalEvent(
   payload: BazaarvoicePayload,
 ): EventPayload {
   const normalizedEvent = {
-    eventType: mapEventType(payload.Metadata.eventType),
-    brand: mapBrand(payload.CurrentState.sourceClient),
-    source: "bazaarvoice",
-    reviewId: payload.CurrentState.id,
-    productId: payload.CurrentState.SubjectProduct.productId,
-    occurredAt: payload.Metadata.occurredAt,
-    metadata: {
-      locale: payload.CurrentState.contentLocale,
-      rating: payload.CurrentState.rating,
-    },
-  };
+  eventType: mapEventType(payload.Metadata.eventType),
+  brand: mapBrand(payload.CurrentState.sourceClient),
+  source: "bazaarvoice",
+  reviewId: payload.CurrentState.id,
+  productId: payload.CurrentState.SubjectProduct.productId,
+  occurredAt: payload.Metadata.occurredAt,
+
+  encryptedEmail:
+    payload.CurrentState.userEmailAddress,
+
+  metadata: {
+    locale: payload.CurrentState.contentLocale,
+    rating: payload.CurrentState.rating,
+  },
+};
 
   return EventSchema.parse(normalizedEvent);
 }
