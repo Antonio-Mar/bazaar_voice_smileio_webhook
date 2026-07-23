@@ -1,30 +1,35 @@
 import { EventSchema, type EventPayload } from "../schemas/event.schema";
 
 type BazaarvoicePayload = {
-  event: string;
-  brand: string;
-  review: {
+  Metadata: {
+    eventType: string;
+    occurredAt: string;
+  };
+  CurrentState: {
     id: string;
-    productId: string;
     rating: number;
-    locale: string;
-    createdAt: string;
+    contentLocale: string;
+    sourceClient: string;
+    userEmailAddress?: string;
+    SubjectProduct: {
+      productId: string;
+    };
   };
 };
 
 export function transformToInternalEvent(
-  payload: BazaarvoicePayload
+  payload: BazaarvoicePayload,
 ): EventPayload {
   const normalizedEvent = {
-    eventType: mapEventType(payload.event),
-    brand: payload.brand.toLowerCase(),
+    eventType: mapEventType(payload.Metadata.eventType),
+    brand: mapBrand(payload.CurrentState.sourceClient),
     source: "bazaarvoice",
-    reviewId: payload.review.id,
-    productId: payload.review.productId,
-    occurredAt: payload.review.createdAt,
+    reviewId: payload.CurrentState.id,
+    productId: payload.CurrentState.SubjectProduct.productId,
+    occurredAt: payload.Metadata.occurredAt,
     metadata: {
-      locale: payload.review.locale,
-      rating: payload.review.rating,
+      locale: payload.CurrentState.contentLocale,
+      rating: payload.CurrentState.rating,
     },
   };
 
@@ -33,9 +38,8 @@ export function transformToInternalEvent(
 
 function mapEventType(event: string): string {
   const eventMap: Record<string, string> = {
-    review_approved: "review.approved",
-    review_rejected: "review.rejected",
-    review_edited: "review.edited",
+    "cgc.review.status.approved.v1": "review.approved",
+    "cgc.review.status.rejected.v1": "review.rejected",
   };
 
   const mapped = eventMap[event];
@@ -45,4 +49,26 @@ function mapEventType(event: string): string {
   }
 
   return mapped;
+}
+
+function mapBrand(sourceClient: string): string {
+  const brands: Record<string, string> = {
+    durangoboot: "durango",
+    rockyboot: "rocky",
+    georgiaboot: "georgia",
+    muckboot: "muck",
+    xtratuf: "xtratuf",
+    slipgrips: "slipgrips",
+    ranger: "ranger",
+    lehighSafetyShoes: "lehighSafetyShoes",
+    lehighOutfitters: "lehighOutfitters",
+  };
+
+  const brand = brands[sourceClient];
+
+  if (!brand) {
+    throw new Error(`Unsupported Bazaarvoice sourceClient: ${sourceClient}`);
+  }
+
+  return brand;
 }
