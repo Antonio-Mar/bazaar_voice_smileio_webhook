@@ -12,11 +12,7 @@ export const handler = async (event: any) => {
   try {
     const body = JSON.parse(event.body || "{}");
 
-    console.log("Incoming payload:", {
-      event: body.event,
-      brand: body.brand,
-      reviewId: body.review?.id,
-    });
+    console.log("Raw payload:", JSON.stringify(body, null, 2));
 
     // normalize FIRST
     const normalizedEvent = transformToInternalEvent(body);
@@ -36,17 +32,13 @@ export const handler = async (event: any) => {
       statusCode: 200,
       body: JSON.stringify(result),
     };
-
   } catch (err) {
     console.error("Webhook failed:", err);
 
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error:
-          err instanceof Error
-            ? err.message
-            : "Unknown error",
+        error: err instanceof Error ? err.message : "Unknown error",
       }),
     };
   }
