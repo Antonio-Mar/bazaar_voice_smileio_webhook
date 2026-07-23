@@ -54,7 +54,7 @@ function mapEventType(event: string): string {
 function mapBrand(sourceClient: string): string {
   const brands: Record<string, string> = {
     durangoboot: "durango",
-    rockyboot: "rocky",
+    rockyboots: "rocky",
     georgiaboot: "georgia",
     muckboot: "muck",
     xtratuf: "xtratuf",
