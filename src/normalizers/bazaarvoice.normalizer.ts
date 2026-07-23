@@ -11,7 +11,7 @@ type BazaarvoicePayload = {
     createdAt: string;
   };
   customer: {
-    email: string;
+    email: "";
   };
 };
 

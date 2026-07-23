@@ -12,7 +12,7 @@ export const EventSchema = z.object({
   ]),
   source: z.string(),
   reviewId: z.string(),
-  customerEmail: z.string().email(),
+  customerEmail: z.string().optional(),
   productId: z.string(),
   occurredAt: z.string().datetime(),
   metadata: z.object({

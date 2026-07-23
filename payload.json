@@ -1,13 +1,11 @@
 {
-  "eventType": "review.approved",
-  "brand": "rocky",
-  "source": "bazaarvoice",
-  "reviewId": "1212",
-  "customerEmail": "Antonio.Marino@Rockybrands.com",
-  "productId": "sku123",
-  "occurredAt": "2026-05-19T12:00:00Z",
-  "metadata": {
+  "event": "review_approved",
+  "brand": "durango",
+  "review": {
+    "id": "BVreview_TEST_003",
+    "productId": "sku_123",
+    "rating": 5,
     "locale": "en_US",
-    "rating": 5
+    "createdAt": "2026-06-22T15:10:03Z"
   }
 }
