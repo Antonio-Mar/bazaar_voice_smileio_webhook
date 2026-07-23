@@ -10,9 +10,6 @@ type BazaarvoicePayload = {
     locale: string;
     createdAt: string;
   };
-  customer: {
-    email: "";
-  };
 };
 
 export function transformToInternalEvent(
@@ -23,7 +20,6 @@ export function transformToInternalEvent(
     brand: payload.brand.toLowerCase(),
     source: "bazaarvoice",
     reviewId: payload.review.id,
-    customerEmail: payload.customer.email,
     productId: payload.review.productId,
     occurredAt: payload.review.createdAt,
     metadata: {
