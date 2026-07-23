@@ -1,119 +1,105 @@
 import type { EventPayload } from "../schemas/event.schema";
 import { shouldProcessEvent } from "./idempotency";
-import { tryMarkProcessed } from "./idempotencyStore"
+import { tryMarkProcessed } from "./idempotencyStore";
 import { createEventKey } from "./eventKey";
 import { calculateReward } from "./rewardEngine";
 import { awardSmilePoints } from "../integrations/smile.client";
 import { getSmileCustomerByEmail } from "../integrations/smile.customer";
+import { getBazaarvoiceCustomerEmail } from "../integrations/bazaarvoice.customer";
 import { logEvent } from "../logging/logger";
 
-
 export async function processEvent(event: EventPayload) {
-    const key = createEventKey(
-        event.source,
-        event.reviewId,
-        event.eventType
-    );
+  const key = createEventKey(event.source, event.reviewId, event.eventType);
 
-    const timestamp = new Date().toISOString();
+  const timestamp = new Date().toISOString();
 
-    // 1. RECEIVED
+  // 1. RECEIVED
+  logEvent({
+    timestamp,
+    reviewId: event.reviewId,
+    brand: event.brand,
+    eventType: event.eventType,
+    status: "RECEIVED",
+  });
+
+  // 2. Idempotency gate
+  const shouldProcess = await shouldProcessEvent(event);
+
+  if (!shouldProcess) {
     logEvent({
-        timestamp,
-        reviewId: event.reviewId,
-        customerEmail: event.customerEmail,
-        brand: event.brand,
-        eventType: event.eventType,
-        status: "RECEIVED",
+      timestamp,
+      reviewId: event.reviewId,
+      brand: event.brand,
+      eventType: event.eventType,
+      status: "DUPLICATE_SKIPPED",
     });
 
-    // 2. Idempotency gate
-    const shouldProcess = await shouldProcessEvent(event);
+    return {
+      success: false,
+      reason: "duplicate_event",
+    };
+  }
 
-    if (!shouldProcess) {
-        logEvent({
-            timestamp,
-            reviewId: event.reviewId,
-            customerEmail: event.customerEmail,
-            brand: event.brand,
-            eventType: event.eventType,
-            status: "DUPLICATE_SKIPPED",
-        });
+  // 3. Calculate reward
+  const reward = calculateReward(event);
 
-        return {
-            success: false,
-            reason: "duplicate_event",
-        };
-    }
+  logEvent({
+    timestamp,
+    reviewId: event.reviewId,
+    brand: event.brand,
+    eventType: event.eventType,
+    status: "POINTS_CALCULATED",
+  });
 
-    // 3. Calculate reward
-    const reward = calculateReward(event);
+  // 4. If no reward, exit cleanly
+  if (!reward.shouldReward) {
+    return {
+      success: true,
+      reward,
+    };
+  }
+
+  try {
+    // 5. Customer lookup
+    const customerEmail = await getBazaarvoiceCustomerEmail(event.reviewId);
+
+    const customer = await getSmileCustomerByEmail(customerEmail, event.brand);
 
     logEvent({
-        timestamp,
-        reviewId: event.reviewId,
-        customerEmail: event.customerEmail,
-        brand: event.brand,
-        eventType: event.eventType,
-        rewardPoints: reward.points,
-        status: "POINTS_CALCULATED",
+      timestamp,
+      reviewId: event.reviewId,
+      brand: event.brand,
+      eventType: event.eventType,
+      status: "CUSTOMER_FOUND",
     });
 
-    // 4. If no reward, exit cleanly
-    if (!reward.shouldReward) {
-        return {
-            success: true,
-            reward,
-        };
-    }
+    // 6. Award points
+    await awardSmilePoints(event.brand, {
+      customerId: customer.id,
+      points: reward.points,
+    });
 
+    logEvent({
+      timestamp,
+      reviewId: event.reviewId,
+      brand: event.brand,
+      eventType: event.eventType,
+      status: "POINTS_AWARDED",
+    });
 
-    try {
-        // 5. Customer lookup
-        const customer = await getSmileCustomerByEmail(event.customerEmail, event.brand);
+    return {
+      success: true,
+      reward,
+    };
+  } catch (error) {
+    logEvent({
+      timestamp,
+      reviewId: event.reviewId,
+      brand: event.brand,
+      eventType: event.eventType,
+      status: "FAILED",
+    });
 
-        logEvent({
-            timestamp,
-            reviewId: event.reviewId,
-            customerEmail: event.customerEmail,
-            brand: event.brand,
-            eventType: event.eventType,
-            rewardPoints: reward.points,
-            status: "CUSTOMER_FOUND",
-        });
-
-        // 6. Award points
-        await awardSmilePoints(event.brand, {
-            customerId: customer.id,
-            points: reward.points,
-        });
-
-        logEvent({
-            timestamp,
-            reviewId: event.reviewId,
-            customerEmail: event.customerEmail,
-            brand: event.brand,
-            eventType: event.eventType,
-            rewardPoints: reward.points,
-            status: "POINTS_AWARDED",
-        });
-
-        return {
-            success: true,
-            reward,
-        };
-
-    } catch (error) {
-        logEvent({
-            timestamp,
-            reviewId: event.reviewId,
-            customerEmail: event.customerEmail,
-            brand: event.brand,
-            eventType: event.eventType,
-            rewardPoints: reward.points,
-            status: "FAILED",
-        });
-
-        throw error;
-    }
+    throw error;
+  }
 }

@@ -1,9 +1,9 @@
 export type LogEntry = {
   timestamp: string;
   reviewId: string;
-  customerEmail: string;
+  customerEmail?: string;
   brand: string;
-  eventType: string;
+  eventType?: string;
   rewardPoints?: number;
   status:
     | "RECEIVED"
