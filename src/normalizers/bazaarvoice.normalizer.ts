@@ -64,14 +64,16 @@ function mapBrand(sourceClient: string): string {
     xtratuf: "xtratuf",
     slipgrips: "slipgrips",
     ranger: "ranger",
-    lehighSafetyShoes: "lehighSafetyShoes",
-    lehighOutfitters: "lehighOutfitters",
+    lehighsafetyshoes: "lehighSafetyShoes",
+    lehighoutfitters: "lehighOutfitters",
   };
 
-  const brand = brands[sourceClient];
+  const brand = brands[sourceClient.toLowerCase()];
 
   if (!brand) {
-    throw new Error(`Unsupported Bazaarvoice sourceClient: ${sourceClient}`);
+    throw new Error(
+      `Unsupported Bazaarvoice sourceClient: ${sourceClient}`
+    );
   }
 
   return brand;
