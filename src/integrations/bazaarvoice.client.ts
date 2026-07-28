@@ -1,4 +1,6 @@
 import "dotenv/config";
+import { getBazaarvoiceConfig } from "../config/bazaarvoiceConfig";
+import type { Brand } from "../config/smileConfig";
 
 export type BazaarvoiceReview = {
   Id: string;
@@ -6,14 +8,18 @@ export type BazaarvoiceReview = {
 };
 
 export async function getReviewById(
-  reviewId: string
+  reviewId: string,
+  brand: Brand,
 ): Promise<BazaarvoiceReview> {
-  const apiUrl = process.env.BV_API_URL;
-  const passKey = process.env.BV_API_KEY;
+
+  const config = getBazaarvoiceConfig(brand);
+
+  const apiUrl = config.apiUrl;
+  const passKey = config.apiKey;
 
   if (!apiUrl || !passKey) {
     throw new Error(
-      "Missing Bazaarvoice API configuration"
+      `Missing Bazaarvoice API configuration for ${brand}`
     );
   }
 
@@ -45,7 +51,6 @@ export async function getReviewById(
 
   return {
     Id: review.Id,
-    UserEmailAddress:
-      review.UserEmailAddress,
+    UserEmailAddress: review.UserEmailAddress,
   };
 }

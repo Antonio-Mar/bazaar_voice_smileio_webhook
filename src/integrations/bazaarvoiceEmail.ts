@@ -1,31 +1,40 @@
 import crypto from "crypto";
+import { getBazaarvoiceConfig } from "../config/bazaarvoiceConfig";
+import type { Brand } from "../config/smileConfig";
 
 export function decryptEmail(
-  encryptedEmail: string
+encryptedEmail: string,
+brand: Brand
 ): string {
-  const secret = process.env.BV_EMAIL_SHARED_KEY;
+const config = getBazaarvoiceConfig(brand);
 
-  if (!secret) {
-    throw new Error("Missing BV_EMAIL_SHARED_KEY");
-  }
+const secret = config.emailSharedKey;
 
-  const key = Buffer.from(secret, "utf8").subarray(0, 16);
+if (!secret) {
+throw new Error(
+`Missing Bazaarvoice email shared key for ${brand}`
+);
+}
 
-  const decipher = crypto.createDecipheriv(
-    "aes-128-ecb",
-    key,
-    null
-  );
+const key = Buffer
+.from(secret, "utf8")
+.subarray(0, 16);
 
-  decipher.setAutoPadding(true);
+const decipher = crypto.createDecipheriv(
+"aes-128-ecb",
+key,
+null
+);
 
-  let decrypted = decipher.update(
-    encryptedEmail,
-    "base64",
-    "utf8"
-  );
+decipher.setAutoPadding(true);
 
-  decrypted += decipher.final("utf8");
+let decrypted = decipher.update(
+encryptedEmail,
+"base64",
+"utf8"
+);
 
-  return decrypted;
+decrypted += decipher.final("utf8");
+
+return decrypted;
 }

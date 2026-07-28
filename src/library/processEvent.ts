@@ -1,11 +1,9 @@
 import type { EventPayload } from "../schemas/event.schema";
 import { shouldProcessEvent } from "./idempotency";
-import { tryMarkProcessed } from "./idempotencyStore";
 import { createEventKey } from "./eventKey";
 import { calculateReward } from "./rewardEngine";
 import { awardSmilePoints } from "../integrations/smile.client";
 import { getSmileCustomerByEmail } from "../integrations/smile.customer";
-import { getBazaarvoiceCustomerEmail } from "../integrations/bazaarvoice.customer";
 import { decryptEmail } from "../integrations/bazaarvoiceEmail";
 import { logEvent } from "../logging/logger";
 
@@ -67,11 +65,7 @@ export async function processEvent(event: EventPayload) {
       throw new Error("Missing encrypted email in webhook payload");
     }
 
-    if (!event.encryptedEmail) {
-      throw new Error("Missing encrypted email in webhook payload");
-    }
-
-    const customerEmail = decryptEmail(event.encryptedEmail);
+    const customerEmail = decryptEmail(event.encryptedEmail, event.brand);
 
     const customer = await getSmileCustomerByEmail(customerEmail, event.brand);
 
