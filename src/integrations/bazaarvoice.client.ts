@@ -9,13 +9,13 @@ export type BazaarvoiceReview = {
 
 export async function getReviewById(
   reviewId: string,
-  brand: Brand,
+  brand: Brand
 ): Promise<BazaarvoiceReview> {
 
-  const config = getBazaarvoiceConfig(brand);
+const config = getBazaarvoiceConfig(brand);
 
-  const apiUrl = config.apiUrl;
-  const passKey = config.apiKey;
+const apiUrl = config.apiUrl;
+const passKey = config.apiKey;
 
   if (!apiUrl || !passKey) {
     throw new Error(

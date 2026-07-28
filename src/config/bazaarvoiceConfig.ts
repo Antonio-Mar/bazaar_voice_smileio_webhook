@@ -1,49 +1,48 @@
-export type Brand = "georgia" | "durango" | "muck" | "xtratuf" | "rocky";
+import type { Brand } from "./smileConfig";
 
-
-type BazaarvoiceBrandConfig = {
+type BazaarvoiceConfig = {
   apiKey: string;
-  apiUrl: string;
   emailSharedKey: string;
+  apiUrl: string;
 };
 
 export function getBazaarvoiceConfig(
   brand: Brand
-) {
+): BazaarvoiceConfig {
   const configs = {
     rocky: {
-      apiKey: process.env.BV_ROCKY_API_KEY!,
-      apiUrl: process.env.BV_ROCKY_API_URL!,
+      apiKey: process.env.BV_API_KEY_ROCKY!,
       emailSharedKey:
-        process.env.BV_ROCKY_EMAIL_SHARED_KEY!,
+        process.env.BV_EMAIL_SHARED_KEY_ROCKY!,
+      apiUrl: process.env.BV_API_URL!,
     },
 
     georgia: {
-      apiKey: process.env.BV_GEORGIA_API_KEY!,
-      apiUrl: process.env.BV_GEORGIA_API_URL!,
+      apiKey: process.env.BV_API_KEY_GEORGIA!,
       emailSharedKey:
-        process.env.BV_GEORGIA_EMAIL_SHARED_KEY!,
+        process.env.BV_EMAIL_SHARED_KEY_GEORGIA!,
+      apiUrl: process.env.BV_API_URL!,
     },
 
     durango: {
-      apiKey: process.env.BV_DURANGO_API_KEY!,
-      apiUrl: process.env.BV_DURANGO_API_URL!,
+      apiKey: process.env.BV_API_KEY_DURANGO!,
       emailSharedKey:
-        process.env.BV_DURANGO_EMAIL_SHARED_KEY!,
+        process.env.BV_EMAIL_SHARED_KEY_DURANGO!,
+      apiUrl: process.env.BV_API_URL!,
     },
 
     muck: {
-      apiKey: process.env.BV_MUCK_API_KEY!,
-      apiUrl: process.env.BV_MUCK_API_URL!,
+      apiKey: process.env.BV_API_KEY_MUCK!,
       emailSharedKey:
-        process.env.BV_MUCK_EMAIL_SHARED_KEY!,
+        process.env.BV_EMAIL_SHARED_KEY_MUCK!,
+      apiUrl: process.env.BV_API_URL!,
     },
 
     xtratuf: {
-      apiKey: process.env.BV_XTRATUF_API_KEY!,
-      apiUrl: process.env.BV_XTRATUF_API_URL!,
+      apiKey: process.env.BV_API_KEY_XTRATUF!,
       emailSharedKey:
-        process.env.BV_XTRATUF_EMAIL_SHARED_KEY!,
+        process.env.BV_EMAIL_SHARED_KEY_XTRATUF!,
+      apiUrl: process.env.BV_API_URL!,
     },
   };
 
