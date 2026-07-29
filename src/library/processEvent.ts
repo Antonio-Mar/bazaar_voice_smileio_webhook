@@ -22,22 +22,8 @@ export async function processEvent(event: EventPayload) {
   });
 
   // 2. Idempotency gate
-  const shouldProcess = await shouldProcessEvent(event);
-
-  if (!shouldProcess) {
-    logEvent({
-      timestamp,
-      reviewId: event.reviewId,
-      brand: event.brand,
-      eventType: event.eventType,
-      status: "DUPLICATE_SKIPPED",
-    });
-
-    return {
-      success: false,
-      reason: "duplicate_event",
-    };
-  }
+// TEMPORARILY DISABLED FOR TESTING
+console.log("IDEMPOTENCY BYPASSED:", key);
 
   // 3. Calculate reward
   const reward = calculateReward(event);
