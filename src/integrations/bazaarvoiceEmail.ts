@@ -7,11 +7,25 @@ export function decryptEmail(encryptedEmail: string, brand: Brand): string {
 
   const secret = config.emailSharedKey;
 
+  console.log("BV DECRYPT DEBUG", {
+  brand,
+  encryptedEmailLength: encryptedEmail.length,
+  secretLength: secret?.length,
+  keyPreview: secret?.slice(0, 5),
+});
+
   if (!secret) {
     throw new Error(`Missing Bazaarvoice email shared key for ${brand}`);
   }
 
   const key = Buffer.from(secret, "utf8").subarray(0, 16);
+
+  console.log({
+ rawKeyLength: secret.length,
+ aesKey: Buffer.from(secret, "utf8")
+   .subarray(0,16)
+   .toString("hex")
+});
 
   console.log("DECRYPT DEBUG", {
     brand,
@@ -21,7 +35,7 @@ export function decryptEmail(encryptedEmail: string, brand: Brand): string {
     firstFourChars: secret.slice(0, 4),
     lastFourChars: secret.slice(-4),
   });
-  
+
   const decipher = crypto.createDecipheriv("aes-128-ecb", key, null);
 
   decipher.setAutoPadding(true);

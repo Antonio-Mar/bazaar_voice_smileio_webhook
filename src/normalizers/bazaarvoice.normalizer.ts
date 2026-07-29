@@ -37,6 +37,10 @@ export function transformToInternalEvent(
   },
 };
 
+console.log({
+ encryptedEmail: payload.CurrentState.userEmailAddress,
+});
+
   return EventSchema.parse(normalizedEvent);
 }
 
