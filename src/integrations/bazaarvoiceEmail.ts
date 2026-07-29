@@ -18,14 +18,9 @@ export function decryptEmail(encryptedEmail: string, brand: Brand): string {
     throw new Error(`Missing Bazaarvoice email shared key for ${brand}`);
   }
 
-  const key = Buffer.from(secret, "utf8").subarray(0, 16);
+  const key = Buffer.from(secret, "hex");
 
-  console.log({
- rawKeyLength: secret.length,
- aesKey: Buffer.from(secret, "utf8")
-   .subarray(0,16)
-   .toString("hex")
-});
+console.log("KEY BYTE LENGTH", key.length);
 
   console.log("DECRYPT DEBUG", {
     brand,
