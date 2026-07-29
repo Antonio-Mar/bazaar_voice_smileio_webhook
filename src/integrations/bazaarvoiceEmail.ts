@@ -22,14 +22,21 @@ export function decryptEmail(encryptedEmail: string, brand: Brand): string {
 
 console.log("KEY BYTE LENGTH", key.length);
 
-  console.log("DECRYPT DEBUG", {
-    brand,
-    encryptedEmail,
-    encryptedLength: encryptedEmail.length,
-    secretLength: secret.length,
-    firstFourChars: secret.slice(0, 4),
-    lastFourChars: secret.slice(-4),
-  });
+console.log("BV CONFIG", {
+  brand,
+  keyName:
+    brand === "rocky"
+      ? "BV_EMAIL_SHARED_KEY_ROCKY"
+      : "other"
+});
+
+console.log(
+  "KEY SHA1",
+  crypto
+    .createHash("sha1")
+    .update(secret)
+    .digest("hex")
+);
 
   const decipher = crypto.createDecipheriv("aes-128-ecb", key, null);
 
