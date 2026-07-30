@@ -51,13 +51,6 @@ export async function processEvent(event: EventPayload) {
       throw new Error("Missing encrypted email in webhook payload");
     }
 
-    console.log("RAW ENCRYPTED EMAIL", event.encryptedEmail);
-
-    return {
-      success: false,
-      reason: "debug_stop",
-    };
-
     const customerEmail = decryptEmail(event.encryptedEmail, event.brand);
 
     const customer = await getSmileCustomerByEmail(customerEmail, event.brand);
