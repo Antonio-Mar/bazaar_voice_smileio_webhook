@@ -22,8 +22,8 @@ export async function processEvent(event: EventPayload) {
   });
 
   // 2. Idempotency gate
-// TEMPORARILY DISABLED FOR TESTING
-console.log("IDEMPOTENCY BYPASSED:", key);
+  // TEMPORARILY DISABLED FOR TESTING
+  console.log("IDEMPOTENCY BYPASSED:", key);
 
   // 3. Calculate reward
   const reward = calculateReward(event);
@@ -50,6 +50,13 @@ console.log("IDEMPOTENCY BYPASSED:", key);
     if (!event.encryptedEmail) {
       throw new Error("Missing encrypted email in webhook payload");
     }
+
+    console.log("RAW ENCRYPTED EMAIL", event.encryptedEmail);
+
+    return {
+      success: false,
+      reason: "debug_stop",
+    };
 
     const customerEmail = decryptEmail(event.encryptedEmail, event.brand);
 
