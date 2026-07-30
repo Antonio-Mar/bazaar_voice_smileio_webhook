@@ -24,10 +24,8 @@ console.log("KEY BYTE LENGTH", key.length);
 
 console.log("BV CONFIG", {
   brand,
-  keyName:
-    brand === "rocky"
-      ? "BV_EMAIL_SHARED_KEY_ROCKY"
-      : "other"
+  envVariable:
+    `BV_EMAIL_SHARED_KEY_${brand.toUpperCase()}`
 });
 
 console.log(
