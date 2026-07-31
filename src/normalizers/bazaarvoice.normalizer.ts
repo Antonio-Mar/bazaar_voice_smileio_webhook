@@ -10,7 +10,7 @@ type BazaarvoicePayload = {
     rating: number;
     contentLocale: string;
     sourceClient: string;
-    userEmailAddress?: string;
+    UserEmailAddress?: string;
     SubjectProduct: {
       productId: string;
     };
@@ -29,7 +29,7 @@ export function transformToInternalEvent(
   occurredAt: payload.Metadata.occurredAt,
 
   encryptedEmail:
-    payload.CurrentState.userEmailAddress,
+    payload.CurrentState.UserEmailAddress,
 
   metadata: {
     locale: payload.CurrentState.contentLocale,
@@ -38,7 +38,7 @@ export function transformToInternalEvent(
 };
 
 console.log({
- encryptedEmail: payload.CurrentState.userEmailAddress,
+ encryptedEmail: payload.CurrentState.UserEmailAddress,
 });
 
   return EventSchema.parse(normalizedEvent);
