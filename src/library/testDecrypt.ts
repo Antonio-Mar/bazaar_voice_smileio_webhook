@@ -19,10 +19,10 @@ async function run() {
   JSON.stringify(review, null, 2)
 );
 
-  console.log("Encrypted email:", review.userEmailAddress);
+  console.log("Encrypted email:", review.UserEmailAddress);
 
   const email = decryptEmail(
-    review.userEmailAddress,
+    review.UserEmailAddress,
     brand
   );
 

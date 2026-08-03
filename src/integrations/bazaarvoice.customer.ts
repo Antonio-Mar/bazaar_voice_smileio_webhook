@@ -12,7 +12,7 @@ export async function getBazaarvoiceCustomerEmail(
   );
 
   return decryptEmail(
-    review.userEmailAddress,
+    review.UserEmailAddress,
     brand
   );
 }
