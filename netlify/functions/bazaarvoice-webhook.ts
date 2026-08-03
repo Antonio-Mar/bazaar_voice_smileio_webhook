@@ -3,19 +3,36 @@ import { transformToInternalEvent } from "../../src/normalizers/bazaarvoice.norm
 
 export const handler = async (event: any) => {
   console.log("=== Bazaarvoice webhook received ===");
+
   console.log({
     timestamp: new Date().toISOString(),
     method: event.httpMethod,
     userAgent: event.headers?.["user-agent"],
   });
 
+  if (event.httpMethod !== "POST") {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({
+        message: "Method Not Allowed",
+      }),
+    };
+  }
+
   try {
-    const body = JSON.parse(event.body || "{}");
+    if (!event.body) {
+      throw new Error("Missing webhook body");
+    }
 
-    console.log("Raw payload:", JSON.stringify(body, null, 2));
+    const body = JSON.parse(event.body);
 
-    // normalize FIRST
-    const normalizedEvent = transformToInternalEvent(body);
+    console.log(
+      "Raw payload:",
+      JSON.stringify(body, null, 2)
+    );
+
+    const normalizedEvent =
+      transformToInternalEvent(body);
 
     console.log("Normalized event:", {
       eventType: normalizedEvent.eventType,
@@ -23,8 +40,8 @@ export const handler = async (event: any) => {
       reviewId: normalizedEvent.reviewId,
     });
 
-    // THEN process
-    const result = await processEvent(normalizedEvent);
+    const result =
+      await processEvent(normalizedEvent);
 
     console.log("Processing result:", result);
 
@@ -32,13 +49,17 @@ export const handler = async (event: any) => {
       statusCode: 200,
       body: JSON.stringify(result),
     };
+
   } catch (err) {
     console.error("Webhook failed:", err);
 
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: err instanceof Error ? err.message : "Unknown error",
+        error:
+          err instanceof Error
+            ? err.message
+            : "Unknown error",
       }),
     };
   }
