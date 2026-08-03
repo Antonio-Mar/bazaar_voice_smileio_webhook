@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { Brand } from "../config/smileConfig";
 
 export const EventSchema = z.object({
   eventType: z.string(),
@@ -33,3 +32,5 @@ export const EventSchema = z.object({
     rating: z.number().min(1).max(5),
   }).optional(),
 });
+
+export type EventPayload = z.infer<typeof EventSchema>;

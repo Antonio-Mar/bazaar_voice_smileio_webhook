@@ -1,4 +1,4 @@
-import type { EventPayload } from "../schemas/event.schema";
+import { EventSchema, type EventPayload } from "../schemas/event.schema";
 import { shouldProcessEvent } from "./idempotency";
 import { createEventKey } from "./eventKey";
 import { calculateReward } from "./rewardEngine";
