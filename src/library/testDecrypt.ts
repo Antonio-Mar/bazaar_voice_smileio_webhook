@@ -2,10 +2,10 @@ import { getReviewById } from "../integrations/bazaarvoice.client";
 import { decryptEmail } from "../integrations/bazaarvoiceEmail";
 
 async function run() {
-  const brand = "durango";
+  const brand = "georgia";
 
   const review = await getReviewById(
-    "304278237",
+    "303641585",
     brand
   );
 

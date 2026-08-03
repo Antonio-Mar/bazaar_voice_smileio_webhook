@@ -60,6 +60,7 @@ export async function processEvent(event: EventPayload) {
       reviewId: event.reviewId,
       brand: event.brand,
       eventType: event.eventType,
+      email: customerEmail,
       status: "CUSTOMER_FOUND",
     });
 
