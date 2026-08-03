@@ -10,6 +10,8 @@ export const handler = async (event: any) => {
     userAgent: event.headers?.["user-agent"],
   });
 
+  console.log("RAW BODY:", event.body);
+
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -27,31 +29,32 @@ export const handler = async (event: any) => {
     const body = JSON.parse(event.body);
 
     console.log(
-      "Raw payload:",
+      "PARSED PAYLOAD:",
       JSON.stringify(body, null, 2)
     );
 
     const normalizedEvent =
       transformToInternalEvent(body);
 
-    console.log("Normalized event:", {
-      eventType: normalizedEvent.eventType,
-      brand: normalizedEvent.brand,
-      reviewId: normalizedEvent.reviewId,
-    });
+    console.log(
+      "NORMALIZED EVENT:",
+      JSON.stringify(normalizedEvent, null, 2)
+    );
 
     const result =
       await processEvent(normalizedEvent);
 
-    console.log("Processing result:", result);
+    console.log(
+      "PROCESSING RESULT:",
+      JSON.stringify(result, null, 2)
+    );
 
     return {
       statusCode: 200,
       body: JSON.stringify(result),
     };
-
   } catch (err) {
-    console.error("Webhook failed:", err);
+    console.error("WEBHOOK FAILED:", err);
 
     return {
       statusCode: 500,

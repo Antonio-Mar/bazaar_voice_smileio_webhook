@@ -20,30 +20,47 @@ type BazaarvoicePayload = {
 export function transformToInternalEvent(
   payload: BazaarvoicePayload,
 ): EventPayload {
+
+  console.log(
+    "NORMALIZER INPUT:",
+    JSON.stringify(payload, null, 2)
+  );
+
   const normalizedEvent = {
-  eventType: mapEventType(payload.Metadata.eventType),
-  brand: mapBrand(payload.CurrentState.sourceClient),
-  source: "bazaarvoice",
-  reviewId: payload.CurrentState.id,
-  productId: payload.CurrentState.SubjectProduct.productId,
-  occurredAt: payload.Metadata.occurredAt,
+    eventType: mapEventType(payload.Metadata.eventType),
+    brand: mapBrand(payload.CurrentState.sourceClient),
+    source: "bazaarvoice",
+    reviewId: payload.CurrentState.id,
+    productId: payload.CurrentState.SubjectProduct.productId,
+    occurredAt: payload.Metadata.occurredAt,
 
-  encryptedEmail:
-    payload.CurrentState.UserEmailAddress,
+    encryptedEmail:
+      payload.CurrentState.UserEmailAddress,
 
-  metadata: {
-    locale: payload.CurrentState.contentLocale,
-    rating: payload.CurrentState.rating,
-  },
-};
+    metadata: {
+      locale: payload.CurrentState.contentLocale,
+      rating: payload.CurrentState.rating,
+    },
+  };
 
-console.log({
- encryptedEmail: payload.CurrentState.UserEmailAddress,
-});
+  console.log(
+    "NORMALIZED EVENT:",
+    JSON.stringify(normalizedEvent, null, 2)
+  );
 
-  return EventSchema.parse(normalizedEvent);
+  const parsed = EventSchema.safeParse(normalizedEvent);
+
+  if (!parsed.success) {
+    console.error(
+      "SCHEMA VALIDATION FAILED:",
+      parsed.error.flatten()
+    );
+
+    throw parsed.error;
+  }
+
+  return parsed.data;
 }
-
 function mapEventType(event: string): string {
   const eventMap: Record<string, string> = {
     "cgc.review.status.approved.v1": "review.approved",

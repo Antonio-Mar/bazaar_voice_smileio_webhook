@@ -51,9 +51,11 @@ export async function processEvent(event: EventPayload) {
       throw new Error("Missing encrypted email in webhook payload");
     }
 
-    const customerEmail = decryptEmail(event.encryptedEmail, event.brand);
+    // event.brand can be a union of string literals not matching the Brand type expected
+    // by decryptEmail. Narrow/cast here to satisfy the expected parameter type.
+    const customerEmail = decryptEmail(event.encryptedEmail, event.brand as any);
 
-    const customer = await getSmileCustomerByEmail(customerEmail, event.brand);
+    const customer = await getSmileCustomerByEmail(customerEmail, event.brand as any);
 
     logEvent({
       timestamp,
@@ -65,7 +67,7 @@ export async function processEvent(event: EventPayload) {
     });
 
     // 6. Award points
-    await awardSmilePoints(event.brand, {
+    await awardSmilePoints(event.brand as any, {
       customerId: customer.id,
       points: reward.points,
     });
