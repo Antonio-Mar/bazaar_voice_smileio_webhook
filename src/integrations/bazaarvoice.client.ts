@@ -4,7 +4,7 @@ import type { Brand } from "../config/smileConfig";
 
 export type BazaarvoiceReview = {
   Id: string;
-  UserEmailAddress: string;
+  userEmailAddress: string;
 };
 
 export async function getReviewById(
@@ -51,6 +51,6 @@ const passKey = config.apiKey;
 
   return {
     Id: review.Id,
-    UserEmailAddress: review.UserEmailAddress,
+    userEmailAddress: review.userEmailAddress,
   };
 }
