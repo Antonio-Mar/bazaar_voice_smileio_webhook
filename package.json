@@ -19,6 +19,6 @@
     "bazaarvoice-test": "npx ts-node src/library/testBazaarVoice.ts",
     "live-idempotency": "npx ts-node src/library/testIdempotency.ts",
     "process-event": "npx ts-node src/library/processEvent.ts",
-    "decyption-test": "npx ts-node src/library/testDecrypt.ts"
+    "decryption-test": "npx ts-node src/library/testDecrypt.ts"
   }
 }

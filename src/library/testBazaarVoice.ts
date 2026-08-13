@@ -3,8 +3,8 @@ import "dotenv/config";
 
 async function run() {
   const review = await getReviewById(
-    "302052595",
-    "georgia",
+    "305607786",
+    "rocky",
   );
 
   console.log(review);
