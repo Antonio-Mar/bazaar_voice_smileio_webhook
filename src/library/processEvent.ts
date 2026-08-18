@@ -6,6 +6,7 @@ import { awardSmilePoints } from "../integrations/smile.client";
 import { getSmileCustomerByEmail } from "../integrations/smile.customer";
 import { decryptEmail } from "../integrations/bazaarvoiceEmail";
 import { logEvent } from "../logging/logger";
+import { getBazaarvoiceCustomerEmail } from "../integrations/bazaarvoice.customer";
 
 export async function processEvent(event: EventPayload) {
   const key = createEventKey(event.source, event.reviewId, event.eventType);
@@ -53,7 +54,11 @@ export async function processEvent(event: EventPayload) {
 
     // event.brand can be a union of string literals not matching the Brand type expected
     // by decryptEmail. Narrow/cast here to satisfy the expected parameter type.
-    const customerEmail = decryptEmail(event.encryptedEmail, event.brand as any);
+    const customerEmail =
+  await getBazaarvoiceCustomerEmail(
+    event.reviewId,
+    event.brand as any
+  );
 
     const customer = await getSmileCustomerByEmail(customerEmail, event.brand as any);
 

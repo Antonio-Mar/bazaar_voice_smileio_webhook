@@ -1,6 +1,6 @@
-import type { Brand } from "../config/smileConfig";
 import { getReviewById } from "./bazaarvoice.client";
 import { decryptEmail } from "./bazaarvoiceEmail";
+import type { Brand } from "../config/smileConfig";
 
 export async function getBazaarvoiceCustomerEmail(
   reviewId: string,
@@ -12,7 +12,7 @@ export async function getBazaarvoiceCustomerEmail(
   );
 
   return decryptEmail(
-    review.userEmailAddress,
+    review.UserEmailAddress,
     brand
   );
 }

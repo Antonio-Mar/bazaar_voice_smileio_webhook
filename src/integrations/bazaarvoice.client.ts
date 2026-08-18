@@ -11,11 +11,10 @@ export async function getReviewById(
   reviewId: string,
   brand: Brand
 ): Promise<BazaarvoiceReview> {
+  const config = getBazaarvoiceConfig(brand);
 
-const config = getBazaarvoiceConfig(brand);
-
-const apiUrl = config.apiUrl;
-const passKey = config.apiKey;
+  const apiUrl = config.apiUrl;
+  const passKey = config.apiKey;
 
   if (!apiUrl || !passKey) {
     throw new Error(
@@ -41,16 +40,17 @@ const passKey = config.apiKey;
 
   const data = await response.json();
 
-  console.log(
-  "FULL BV RESPONSE",
-  JSON.stringify(data, null, 2)
-);
-
   const review = data.Results?.[0];
 
   if (!review) {
     throw new Error(
       `Review not found: ${reviewId}`
+    );
+  }
+
+  if (!review.UserEmailAddress) {
+    throw new Error(
+      `Review ${reviewId} has no UserEmailAddress`
     );
   }
 
