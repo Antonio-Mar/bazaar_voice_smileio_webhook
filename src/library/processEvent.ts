@@ -1,15 +1,26 @@
-import { EventSchema, type EventPayload } from "../schemas/event.schema";
-import { shouldProcessEvent } from "./idempotency";
+import type { EventPayload } from "../schemas/event.schema";
+import {
+  hasProcessed,
+  acquireProcessingLock,
+  markProcessed,
+  releaseProcessingLock,
+} from "./idempotency";
+
 import { createEventKey } from "./eventKey";
 import { calculateReward } from "./rewardEngine";
 import { awardSmilePoints } from "../integrations/smile.client";
 import { getSmileCustomerByEmail } from "../integrations/smile.customer";
-import { decryptEmail } from "../integrations/bazaarvoiceEmail";
 import { logEvent } from "../logging/logger";
 import { getBazaarvoiceCustomerEmail } from "../integrations/bazaarvoice.customer";
 
-export async function processEvent(event: EventPayload) {
-  const key = createEventKey(event.source, event.reviewId, event.eventType);
+export async function processEvent(
+  event: EventPayload
+) {
+  const key = createEventKey(
+    event.source,
+    event.reviewId,
+    event.eventType
+  );
 
   const timestamp = new Date().toISOString();
 
@@ -22,60 +33,97 @@ export async function processEvent(event: EventPayload) {
     status: "RECEIVED",
   });
 
-  // 2. Idempotency gate
-  // TEMPORARILY DISABLED FOR TESTING
-  console.log("IDEMPOTENCY BYPASSED:", key);
+  // 2. Has this event already completed?
+  const alreadyProcessed =
+    await hasProcessed(key);
 
-  // 3. Calculate reward
-  const reward = calculateReward(event);
+  if (alreadyProcessed) {
+    logEvent({
+      timestamp,
+      reviewId: event.reviewId,
+      brand: event.brand,
+      eventType: event.eventType,
+      status: "DUPLICATE_SKIPPED",
+    });
 
-  logEvent({
-    timestamp,
-    reviewId: event.reviewId,
-    brand: event.brand,
-    eventType: event.eventType,
-    status: "POINTS_CALCULATED",
-  });
-
-  // 4. If no reward, exit cleanly
-  if (!reward.shouldReward) {
     return {
       success: true,
-      reward,
+      skipped: true,
+      reason: "duplicate_event",
+    };
+  }
+
+  // 3. Prevent concurrent processing
+  const lockAcquired =
+    await acquireProcessingLock(key);
+
+  if (!lockAcquired) {
+    console.log(
+      "EVENT ALREADY PROCESSING:",
+      key
+    );
+
+    return {
+      success: true,
+      skipped: true,
+      reason: "event_processing",
     };
   }
 
   try {
-    // 5. Customer lookup
-
-    if (!event.encryptedEmail) {
-      throw new Error("Missing encrypted email in webhook payload");
-    }
-
-    // event.brand can be a union of string literals not matching the Brand type expected
-    // by decryptEmail. Narrow/cast here to satisfy the expected parameter type.
-    const customerEmail =
-  await getBazaarvoiceCustomerEmail(
-    event.reviewId,
-    event.brand as any
-  );
-
-    const customer = await getSmileCustomerByEmail(customerEmail, event.brand as any);
+    // 4. Calculate reward
+    const reward =
+      calculateReward(event);
 
     logEvent({
       timestamp,
       reviewId: event.reviewId,
       brand: event.brand,
       eventType: event.eventType,
-      customerEmail: customerEmail,
+      status: "POINTS_CALCULATED",
+    });
+
+    // 5. Event requires no reward
+    if (!reward.shouldReward) {
+      await markProcessed(key);
+
+      return {
+        success: true,
+        reward,
+      };
+    }
+
+    // 6. Fetch Bazaarvoice email
+    const customerEmail =
+      await getBazaarvoiceCustomerEmail(
+        event.reviewId,
+        event.brand as any
+      );
+
+    // 7. Find Smile customer
+    const customer =
+      await getSmileCustomerByEmail(
+        customerEmail,
+        event.brand as any
+      );
+
+    logEvent({
+      timestamp,
+      reviewId: event.reviewId,
+      brand: event.brand,
+      eventType: event.eventType,
+      customerEmail,
       status: "CUSTOMER_FOUND",
     });
 
-    // 6. Award points
-    await awardSmilePoints(event.brand as any, {
-      customerId: customer.id,
-      points: reward.points,
-    });
+    // 8. Award points
+    await awardSmilePoints(
+      event.brand as any,
+      {
+        customerId: customer.id,
+        points: reward.points,
+      }
+    );
 
     logEvent({
       timestamp,
@@ -84,6 +132,9 @@ export async function processEvent(event: EventPayload) {
       eventType: event.eventType,
       status: "POINTS_AWARDED",
     });
+
+    // 9. ONLY mark completed after Smile succeeds
+    await markProcessed(key);
 
     return {
       success: true,
@@ -99,5 +150,8 @@ export async function processEvent(event: EventPayload) {
     });
 
     throw error;
+  } finally {
+    // Always release temporary lock
+    await releaseProcessingLock(key);
   }
 }
