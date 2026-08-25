@@ -20,8 +20,6 @@ const rawPayload = {
 async function run() {
   const event = transformToInternalEvent(rawPayload);
 
-  console.log("FIRST RUN");
-  console.log(await processEvent(event));
 }
 
 run();

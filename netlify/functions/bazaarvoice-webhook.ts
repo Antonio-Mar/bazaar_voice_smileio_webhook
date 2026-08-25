@@ -2,15 +2,6 @@ import { processEvent } from "../../src/library/processEvent";
 import { transformToInternalEvent } from "../../src/normalizers/bazaarvoice.normalizer";
 
 export const handler = async (event: any) => {
-  console.log("=== Bazaarvoice webhook received ===");
-
-  console.log({
-    timestamp: new Date().toISOString(),
-    method: event.httpMethod,
-    userAgent: event.headers?.["user-agent"],
-  });
-
-  console.log("RAW BODY:", event.body);
 
   if (event.httpMethod !== "POST") {
     return {

@@ -18,6 +18,3 @@ const rawPayload = {
 };
 
 const event = transformToInternalEvent(rawPayload);
-
-console.log("First attempt:", shouldProcessEvent(event));
-console.log("Second attempt:", shouldProcessEvent(event));

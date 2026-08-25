@@ -46,12 +46,5 @@ export function getBazaarvoiceConfig(
     },
   };
 
-  console.log("Bazaarvoice config check:", {
-    brand,
-    apiKeyExists: !!configs[brand].apiKey,
-    emailKeyExists: !!configs[brand].emailSharedKey,
-    apiUrlExists: !!configs[brand].apiUrl,
-  });
-
   return configs[brand];
 }
