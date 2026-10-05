@@ -12,8 +12,14 @@ export async function getSmileVipTierName(
 ): Promise<string> {
   const config = getSmileConfig(brand);
 
+  const endpoint = process.env.SMILE_API_URL;
+
+  if (!endpoint) {
+    throw new Error("Missing SMILE_API_URL");
+  }
+
   const response = await fetch(
-    "https://api.smile.io/v1/vip_tiers",
+    `${endpoint}/vip_tiers`,
     {
       headers: {
         Authorization: `Bearer ${config.apiKey}`,
