@@ -1,8 +1,16 @@
-export const georgiaConfig = {
+import type { BrandConfig } from "../brandConfigs.types";
+
+
+export const georgiaConfig: BrandConfig = {
   brand: "georgia",
 
   rewards: {
-    reviewApproved: 50,
+    reviewApproved: {
+      bronze: 50,
+      silver: 75,
+      gold: 100,
+    },
+
     reviewEdited: 10,
   },
 

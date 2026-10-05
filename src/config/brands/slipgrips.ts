@@ -2,10 +2,14 @@ export const slipgripConfig = {
   brand: "slipgrips",
 
   rewards: {
-    reviewApproved: 50,
+    reviewApproved: {
+      bronze: 50,
+      silver: 75,
+      gold: 100,
+    },
+
     reviewEdited: 10,
   },
-
   smile: {
     description: "Slipgrips Review",
     internalNote: "BV Review Reward",

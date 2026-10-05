@@ -1,8 +1,15 @@
-export const durangoConfig = {
+import type { BrandConfig } from "../brandConfigs.types";
+
+export const durangoConfig: BrandConfig = {
   brand: "durango",
 
   rewards: {
-    reviewApproved: 50,
+    reviewApproved: {
+      "bronze buckle": 50,
+      "silver buckle": 75,
+      "gold buckle": 100,
+    },
+
     reviewEdited: 10,
   },
 

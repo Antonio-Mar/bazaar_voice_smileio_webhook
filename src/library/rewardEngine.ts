@@ -1,16 +1,39 @@
 import { getBrandConfig } from "../config/getBrandConfig";
 import type { EventPayload } from "../schemas/event.schema";
 
-export function calculateReward(event: EventPayload) {
+export function calculateReward(
+  event: EventPayload,
+  vipTierName?: string
+) {
   const config = getBrandConfig(event.brand);
 
   switch (event.eventType) {
-    case "review.approved":
+    case "review.approved": {
+      if (!vipTierName) {
+        throw new Error(
+          `Missing VIP tier for approved review ${event.reviewId}`
+        );
+      }
+
+      const tierKey = vipTierName
+        .trim()
+        .toLowerCase();
+
+      const points =
+        config.rewards.reviewApproved[tierKey];
+
+      if (points === undefined) {
+        throw new Error(
+          `No review reward configured for VIP tier "${vipTierName}" on ${event.brand}`
+        );
+      }
+
       return {
         shouldReward: true,
-        points: config.rewards.reviewApproved,
-        reason: "Approved review",
+        points,
+        reason: `Approved review - ${vipTierName}`,
       };
+    }
 
     case "review.edited":
       return {

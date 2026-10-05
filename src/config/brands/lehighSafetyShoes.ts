@@ -2,7 +2,12 @@ export const lehighSafetyShoesConfig = {
   brand: "lehigh-safety-shoes",
 
   rewards: {
-    reviewApproved: 50,
+    reviewApproved: {
+      bronze: 50,
+      silver: 75,
+      gold: 100,
+    },
+
     reviewEdited: 10,
   },
 
