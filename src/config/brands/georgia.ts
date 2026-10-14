@@ -6,9 +6,9 @@ export const georgiaConfig: BrandConfig = {
 
   rewards: {
     reviewApproved: {
-      bronze: 50,
-      silver: 75,
-      gold: 100,
+      apprentice: 50,
+      journeyman: 75,
+      foreman: 100,
     },
 
     reviewEdited: 10,
