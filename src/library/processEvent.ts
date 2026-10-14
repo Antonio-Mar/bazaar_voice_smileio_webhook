@@ -14,28 +14,31 @@ import { getBazaarvoiceCustomerEmail } from "../integrations/bazaarvoice.custome
 import { getSmileVipTierName } from "../integrations/smile.vip";
 
 export async function processEvent(event: EventPayload) {
-  const key = createEventKey(event.source, event.reviewId, event.eventType);
+  const key = createEventKey(
+    event.source,
+    event.reviewId,
+    event.eventType,
+  );
 
-  const timestamp = new Date().toISOString();
-
-  // 1. RECEIVED
-  logEvent({
-    timestamp,
+  const baseLog = () => ({
+    timestamp: new Date().toISOString(),
     reviewId: event.reviewId,
     brand: event.brand,
     eventType: event.eventType,
+  });
+
+  // 1. Event received
+  logEvent({
+    ...baseLog(),
     status: "RECEIVED",
   });
 
-  // 2. Has this event already completed?
+  // 2. Check whether event has already completed
   const alreadyProcessed = await hasProcessed(key);
 
   if (alreadyProcessed) {
     logEvent({
-      timestamp,
-      reviewId: event.reviewId,
-      brand: event.brand,
-      eventType: event.eventType,
+      ...baseLog(),
       status: "DUPLICATE_SKIPPED",
     });
 
@@ -50,7 +53,11 @@ export async function processEvent(event: EventPayload) {
   const lockAcquired = await acquireProcessingLock(key);
 
   if (!lockAcquired) {
-    console.log("EVENT ALREADY PROCESSING:", key);
+    console.warn("Event already processing", {
+      reviewId: event.reviewId,
+      brand: event.brand,
+      eventType: event.eventType,
+    });
 
     return {
       success: true,
@@ -60,19 +67,21 @@ export async function processEvent(event: EventPayload) {
   }
 
   try {
-    // 4. Handle events that do NOT need VIP tier lookup
+    let reward:
+      | ReturnType<typeof calculateReward>
+      | undefined;
+
+    // 4. Calculate rewards for events that do not require VIP status
     if (event.eventType !== "review.approved") {
-      const reward = calculateReward(event);
+      reward = calculateReward(event);
 
       logEvent({
-        timestamp,
-        reviewId: event.reviewId,
-        brand: event.brand,
-        eventType: event.eventType,
+        ...baseLog(),
         rewardPoints: reward.points,
         status: "POINTS_CALCULATED",
       });
 
+      // Example: rejected reviews
       if (!reward.shouldReward) {
         await markProcessed(key);
 
@@ -81,85 +90,79 @@ export async function processEvent(event: EventPayload) {
           reward,
         };
       }
-
-      // if adding review edited or other events that don't require VIP tier, you can add them here
     }
 
-    // 5. Fetch Bazaarvoice email
-    const customerEmail = await getBazaarvoiceCustomerEmail(
-      event.reviewId,
-      event.brand as any,
-    );
+    // 5. Retrieve customer email from Bazaarvoice
+    const customerEmail =
+      await getBazaarvoiceCustomerEmail(
+        event.reviewId,
+        event.brand as any,
+      );
 
-    // 6. Find Smile customer
-    const customer = await getSmileCustomerByEmail(
-      customerEmail,
-      event.brand as any,
-    );
+    // 6. Find customer in Smile
+    const customer =
+      await getSmileCustomerByEmail(
+        customerEmail,
+        event.brand as any,
+      );
 
     logEvent({
-      timestamp,
-      reviewId: event.reviewId,
-      brand: event.brand,
-      eventType: event.eventType,
-      customerEmail,
+      ...baseLog(),
       status: "CUSTOMER_FOUND",
     });
 
-    // 7. Get Smile VIP tier
-    const vipTierId = customer.vip_status?.vip_tier_id;
+    // 7. Approved reviews use VIP tier rewards
+    if (event.eventType === "review.approved") {
+      const vipTierId =
+        customer.vip_status?.vip_tier_id;
 
-    if (vipTierId == null) {
-      throw new Error(`Smile customer ${customer.id} has no VIP tier`);
+      if (vipTierId == null) {
+        throw new Error(
+          `Smile customer has no VIP tier`,
+        );
+      }
+
+      const vipTierName =
+        await getSmileVipTierName(
+          event.brand as any,
+          vipTierId,
+        );
+
+      reward = calculateReward(
+        event,
+        vipTierName,
+      );
+
+      logEvent({
+        ...baseLog(),
+        rewardPoints: reward.points,
+        status: "POINTS_CALCULATED",
+      });
     }
 
-    const vipTierName = await getSmileVipTierName(
+    // Safety check
+    if (!reward || !reward.shouldReward) {
+      throw new Error(
+        `Reward was not calculated for ${event.eventType}`,
+      );
+    }
+
+    // 8. Award Smile points
+    await awardSmilePoints(
       event.brand as any,
-      vipTierId,
+      {
+        customerId: customer.id,
+        points: reward.points,
+      },
     );
 
-    console.log("SMILE VIP TIER:", {
-      customerId: customer.id,
-      vipTierId,
-      vipTierName,
-    });
-
-    // 8. Calculate reward using VIP tier
-    const reward = calculateReward(event, vipTierName);
-
-    console.log("REWARD CHECK:", {
-      brand: event.brand,
-      vipTierName,
-      tierKey: vipTierName.trim().toLowerCase(),
-      points: reward.points,
-      reason: reward.reason,
-    });
-
     logEvent({
-      timestamp,
-      reviewId: event.reviewId,
-      brand: event.brand,
-      eventType: event.eventType,
-      rewardPoints: reward.points,
-      status: "POINTS_CALCULATED",
-    });
-
-    // 9. Award points
-    await awardSmilePoints(event.brand as any, {
-      customerId: customer.id,
-      points: reward.points,
-    });
-
-    logEvent({
-      timestamp,
-      reviewId: event.reviewId,
-      brand: event.brand,
-      eventType: event.eventType,
+      ...baseLog(),
       rewardPoints: reward.points,
       status: "POINTS_AWARDED",
     });
 
-    // 10. Mark completed ONLY after points succeed
+    // 9. Mark complete only after Smile succeeds
     await markProcessed(key);
 
     return {
@@ -168,15 +171,13 @@ export async function processEvent(event: EventPayload) {
     };
   } catch (error) {
     logEvent({
-      timestamp,
-      reviewId: event.reviewId,
-      brand: event.brand,
-      eventType: event.eventType,
+      ...baseLog(),
       status: "FAILED",
     });
 
     throw error;
   } finally {
+    // 10. Always release the temporary lock
     await releaseProcessingLock(key);
   }
 }

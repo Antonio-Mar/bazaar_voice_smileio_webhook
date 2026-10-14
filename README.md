@@ -622,7 +622,7 @@ Example:
 
 The current processor includes the decrypted `customerEmail` in the `CUSTOMER_FOUND` log entry, and the Smile customer integration logs the full Smile customer-search response.
 
-These debug logs should be removed or sanitized before treating the implementation as production-safe for customer PII.
+These debug logs should be removed or sanitized before treating the implementation safe for customer PII.
 
 ---
 
