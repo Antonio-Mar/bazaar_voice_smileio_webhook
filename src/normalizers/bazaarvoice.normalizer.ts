@@ -10,7 +10,7 @@ type BazaarvoicePayload = {
     rating: number;
     contentLocale: string;
     sourceClient: string;
-    serEmailAddress?: string;
+    userEmailAddress?: string;
     SubjectProduct: {
       productId: string;
     };

@@ -1,41 +1,41 @@
 # Bazaarvoice → Smile.io Review Rewards Integration
 
-A multi-brand TypeScript/Node.js integration that listens for Bazaarvoice review events and awards Smile.io loyalty points based on the customer's VIP tier.
+A TypeScript/Node.js integration that receives Bazaarvoice review-status webhooks and awards Smile.io loyalty points based on a customer's VIP tier.
 
-The integration is designed to support multiple Rocky Brands properties with brand-specific Bazaarvoice credentials, Smile.io credentials, reward values, and configuration.
+The project is designed for multiple Rocky Brands properties with brand-specific Bazaarvoice credentials, Smile.io credentials, VIP tier names, and reward values.
 
 ---
 
 ## Overview
 
-This service receives Bazaarvoice webhook events when a product review changes status.
+For an approved Bazaarvoice review, the integration currently:
 
-For approved reviews, the integration:
+1. Receives a Bazaarvoice webhook through a Netlify Function.
+2. Normalizes the Bazaarvoice payload into an internal event.
+3. Validates the normalized event with Zod.
+4. Checks Upstash Redis to determine whether the event has already completed.
+5. Acquires a temporary Redis processing lock.
+6. Retrieves the review from the Bazaarvoice Conversations API.
+7. Reads and decrypts the review's encrypted customer email.
+8. Searches Smile.io for the customer.
+9. Reads the customer's `vip_status.vip_tier_id`.
+10. Resolves that ID to a Smile VIP tier name.
+11. Looks up the configured reward for that brand and tier.
+12. Creates a Smile.io points transaction.
+13. Marks the event completed in Redis after Smile succeeds.
+14. Releases the processing lock.
 
-1. Receives the Bazaarvoice webhook.
-2. Normalizes the Bazaarvoice payload into an internal event format.
-3. Checks Redis to determine whether the review event has already been processed.
-4. Acquires a temporary processing lock to prevent simultaneous duplicate processing.
-5. Looks up the review through the Bazaarvoice Conversations API.
-6. Retrieves and decrypts the customer's encrypted email address.
-7. Searches Smile.io for the customer using the decrypted email.
-8. Determines the customer's Smile VIP tier.
-9. Calculates the review reward using the brand configuration and VIP tier.
-10. Awards the appropriate number of Smile.io points.
-11. Marks the event as successfully processed in Redis.
-12. Releases the temporary processing lock.
-
-The integration is currently deployed as a Netlify serverless function.
+The application is configured to run as a Netlify Function.
 
 ---
 
-# Technology
+## Technology
 
 - TypeScript
 - Node.js
 - Netlify Functions
-- Bazaarvoice Conversations API
 - Bazaarvoice Webhooks
+- Bazaarvoice Conversations API
 - Smile.io API
 - Upstash Redis
 - Zod
@@ -43,7 +43,7 @@ The integration is currently deployed as a Netlify serverless function.
 
 ---
 
-# Project Structure
+## Project Structure
 
 ```text
 src/
@@ -58,9 +58,8 @@ src/
 │   │   ├── slipgrips.ts
 │   │   ├── lehighOutfitters.ts
 │   │   └── lehighSafetyShoes.ts
-│   │
 │   ├── bazaarvoiceConfig.ts
-│   ├── brandConfig.types.ts
+│   ├── brandConfigs.types.ts
 │   ├── getBrandConfig.ts
 │   └── smileConfig.ts
 │
@@ -76,10 +75,10 @@ src/
 ├── library/
 │   ├── eventKey.ts
 │   ├── idempotency.ts
+│   ├── logger.ts
 │   ├── processEvent.ts
 │   ├── rewardEngine.ts
-│   ├── testDecrypt.ts
-│   └── testVip.ts
+│   └── various local test utilities
 │
 ├── logging/
 │   └── logger.ts
@@ -97,72 +96,104 @@ netlify/
 
 ---
 
-# Supported Brands
+## Brand Support
 
-The integration currently supports brand-specific configuration for:
+### Fully API-wired brands
+
+The following brands currently have entries in both `smileConfig.ts` and `bazaarvoiceConfig.ts`:
 
 - Rocky
 - Georgia Boot
 - Durango
 - Muck
 - Xtratuf
+
+These brands can currently use the full Bazaarvoice → Smile.io processing flow, assuming the appropriate environment variables are configured.
+
+### Partially scaffolded brands
+
+The following brands are present in the event schema, source-client mapping, and reward configuration layer:
+
 - Ranger
 - SlipGrips
 - Lehigh Outfitters
 - Lehigh Safety Shoes
 
-Bazaarvoice `sourceClient` values are normalized into internal brand names before the event is processed.
+However, they are not currently included in the `Brand` type used by the Smile/Bazaarvoice integrations and do not currently have API credential mappings in `smileConfig.ts` and `bazaarvoiceConfig.ts`.
 
-Example:
+They should not be considered fully enabled until those integration configs are added.
+
+---
+
+## Bazaarvoice Brand Mapping
+
+Bazaarvoice `sourceClient` values are normalized into the application's internal brand values.
+
+Examples:
 
 ```text
-rockyboots → rocky
-georgiaboot → georgia
-durangoboot → durango
-muckboot → muck
-xtratuf → xtratuf
+rockyboots        → rocky
+georgiaboot       → georgia
+durangoboot       → durango
+muckboot          → muck
+xtratuf           → xtratuf
+slipgrips         → slipgrips
+ranger            → ranger
+lehighsafetyshoes → lehighSafetyShoes
+lehighoutfitters  → lehighOutfitters
 ```
 
 ---
 
-# Bazaarvoice Webhook
+## Supported Webhook Events
 
-The Netlify function receives Bazaarvoice webhook events such as:
+The Bazaarvoice normalizer currently maps:
+
+```text
+cgc.review.status.approved.v1 → review.approved
+cgc.review.status.rejected.v1 → review.rejected
+```
+
+The reward engine also contains logic for:
+
+```text
+review.edited
+```
+
+but an edited-review Bazaarvoice event is not currently mapped by `bazaarvoice.normalizer.ts`.
+
+---
+
+## Example Bazaarvoice Webhook
+
+The Netlify Function expects a Bazaarvoice webhook payload with fields such as:
 
 ```json
 {
   "Metadata": {
-    "eventId": "example-event-id",
     "eventType": "cgc.review.status.approved.v1",
-    "subject": "review",
     "occurredAt": "2026-08-25T17:59:40.258Z"
   },
   "CurrentState": {
-    "rating": 5,
-    "sourceClient": "rockyboots",
-    "contentLocale": "en_US",
     "id": "305983004",
-    "moderationStatus": "APPROVED",
+    "rating": 5,
+    "contentLocale": "en_US",
+    "sourceClient": "rockyboots",
     "userEmailAddress": "ENCRYPTED_EMAIL",
     "SubjectProduct": {
-      "productId": "product::123456"
-    },
-    "Contributor": {
-      "authorId": "example-author-id"
+      "productId": "123456"
     }
   }
 }
 ```
 
-The webhook payload is normalized before being sent through the rest of the application.
+The payload is normalized and validated before processing.
 
 ---
 
-# Internal Event Format
+## Internal Event
 
-Bazaarvoice events are transformed into a consistent internal event structure.
-
-Example:
+A normalized approved-review event resembles:
 
 ```json
 {
@@ -170,7 +201,7 @@ Example:
   "brand": "rocky",
   "source": "bazaarvoice",
   "reviewId": "305983004",
-  "productId": "product::123456",
+  "productId": "123456",
   "occurredAt": "2026-08-25T17:59:40.258Z",
   "encryptedEmail": "ENCRYPTED_EMAIL",
   "metadata": {
@@ -180,52 +211,83 @@ Example:
 }
 ```
 
-The event is validated with Zod before processing.
-
----
-
-# Event Mapping
-
-Bazaarvoice webhook event types are converted to internal event names.
+Validation is performed with the Zod schema in:
 
 ```text
-cgc.review.status.approved.v1 → review.approved
-cgc.review.status.rejected.v1 → review.rejected
+src/schemas/event.schema.ts
 ```
-
-Additional event mappings can be added to the Bazaarvoice normalizer as needed.
 
 ---
 
-# Bazaarvoice Customer Email
+## Bazaarvoice Review Lookup
 
-Bazaarvoice customer email addresses are encrypted.
+The integration does not decrypt the webhook email value directly during processing.
 
-Rather than decrypting the email value directly from the webhook, the integration retrieves the review through the Bazaarvoice Conversations API.
+Instead, the review ID is used to query the Bazaarvoice Conversations API:
 
 ```text
 GET /data/reviews.json
 ```
 
-The API response provides:
+with:
 
-```json
-{
-  "UserEmailAddress": "ENCRYPTED_EMAIL"
-}
+```text
+ApiVersion=5.4
+PassKey=<brand API key>
+Filter=Id:<reviewId>
 ```
 
-The API uses `UserEmailAddress` with a capital `U`, while Bazaarvoice webhook payloads use `userEmailAddress`.
+The application then reads:
 
-These values should not be treated as interchangeable.
+```text
+UserEmailAddress
+```
+
+from the returned review.
+
+### Important field casing
+
+The webhook uses:
+
+```text
+userEmailAddress
+```
+
+while the Conversations API response uses:
+
+```text
+UserEmailAddress
+```
+
+JavaScript field names are case-sensitive.
 
 ---
 
-# Email Decryption
+## Bazaarvoice API Availability
 
-Encrypted Bazaarvoice email addresses are decrypted using AES-128-ECB.
+A webhook event may arrive before the corresponding review is available through the Conversations API.
 
-The correct brand-specific Bazaarvoice shared key is selected before decryption.
+The current `getReviewById()` implementation performs one Bazaarvoice API request.
+
+If the API returns no matching review, the request throws an error:
+
+```text
+Review not found: <reviewId>
+```
+
+The event is not marked complete in Redis, and the temporary processing lock is released.
+
+This allows a later Bazaarvoice webhook retry to attempt the event again.
+
+There is currently no internal retry/backoff loop inside `getReviewById()`.
+
+---
+
+## Customer Email Decryption
+
+Bazaarvoice customer email addresses are decrypted using AES-128-ECB with the brand-specific shared key.
+
+The implementation creates the AES key with:
 
 ```ts
 const key = Buffer
@@ -233,7 +295,7 @@ const key = Buffer
   .subarray(0, 16);
 ```
 
-The encrypted email is Base64 decoded during decryption.
+and decrypts the Base64 value using:
 
 ```ts
 decipher.update(
@@ -243,38 +305,13 @@ decipher.update(
 );
 ```
 
-Do not log decrypted customer email addresses unless needed for temporary debugging.
+Each enabled brand requires its own Bazaarvoice email shared key.
 
 ---
 
-# Bazaarvoice API Propagation
+## Smile Customer Lookup
 
-A Bazaarvoice webhook can arrive before the same review is available through the Conversations Reviews API.
-
-For example:
-
-```text
-Webhook receives approved review
-        ↓
-GET /data/reviews.json
-        ↓
-HTTP 200
-TotalResults: 0
-```
-
-The integration performs a short retry when retrieving a review.
-
-If the review is still unavailable, processing fails without marking the event complete.
-
-Bazaarvoice can then retry delivery later.
-
-This behavior is important because a review should never be permanently marked processed before all required downstream actions succeed.
-
----
-
-# Smile.io Customer Lookup
-
-After decrypting the customer email, the integration searches Smile.io.
+After the Bazaarvoice email is decrypted, the integration searches Smile.io using:
 
 ```text
 GET /customers
@@ -283,95 +320,92 @@ GET /customers
 The request includes:
 
 ```text
+limit=10
+email=<customer email>
 include=vip_status
 ```
 
-This allows the customer response to include the customer's VIP tier information.
+This allows the application to access:
 
-Example:
-
-```json
-{
-  "id": 123456,
-  "email": "customer@example.com",
-  "vip_status": {
-    "vip_tier_id": 789
-  }
-}
+```ts
+customer.vip_status?.vip_tier_id
 ```
+
+If no Smile customer is found, processing fails and the event is left retryable.
 
 ---
 
-# Smile VIP Tier Lookup
+## Smile VIP Tier Lookup
 
-The customer's `vip_tier_id` is resolved using the Smile VIP tiers endpoint.
+For approved reviews, the customer's Smile VIP tier ID is resolved through:
 
 ```text
 GET /vip_tiers
 ```
 
-The integration matches the customer's VIP tier ID to the tier name.
+The integration searches the returned tiers for a matching ID and returns its name.
 
 Example:
 
 ```text
-vip_tier_id: 789
-        ↓
+vip_tier_id: 12345
+      ↓
 Gold Buckle
 ```
 
-The tier name is then passed to the reward engine.
+That tier name is then passed to the reward engine.
 
 ---
 
-# Reward Configuration
+## Reward Configuration
 
-Reward values are controlled at the brand level.
+Approved-review rewards are configured independently for each brand.
 
-This allows each brand to use different VIP tier names and different point values without changing application logic.
-
-Example Durango configuration:
+The shared configuration type uses:
 
 ```ts
-export const durangoConfig = {
-  brand: "durango",
-
-  rewards: {
-    reviewApproved: {
-      "bronze buckle": 50,
-      "silver buckle": 75,
-      "gold buckle": 100,
-    },
-
-    reviewEdited: 10,
-  },
-
-  smile: {
-    description: "Durango Review",
-    internalNote: "BV Review Reward",
-  },
-};
+reviewApproved: Record<string, number>;
 ```
 
-Another brand can use completely different tier names:
+This allows brands to use different Smile VIP tier names.
+
+### Durango
 
 ```ts
 reviewApproved: {
-  member: 50,
-  premium: 75,
-  elite: 100,
+  "bronze buckle": 50,
+  "silver buckle": 75,
+  "gold buckle": 100,
 }
 ```
 
-No reward-engine changes are required.
+### Rocky
+
+```ts
+reviewApproved: {
+  bronze: 50,
+  silver: 75,
+  gold: 100,
+}
+```
+
+### Georgia Boot
+
+```ts
+reviewApproved: {
+  apprentice: 50,
+  journeyman: 75,
+  foreman: 100,
+}
+```
+
+The reward engine does not hard-code tier names.
 
 ---
 
-# Reward Engine
+## Reward Calculation
 
-The reward engine retrieves the appropriate brand configuration.
-
-For approved reviews, the Smile VIP tier name is normalized:
+For approved reviews, the Smile tier name is normalized:
 
 ```ts
 const tierKey = vipTierName
@@ -379,46 +413,90 @@ const tierKey = vipTierName
   .toLowerCase();
 ```
 
-The configured reward is then retrieved:
+The reward is then retrieved from the active brand configuration:
 
 ```ts
 const points =
   config.rewards.reviewApproved[tierKey];
 ```
 
-If a Smile VIP tier exists but no reward is configured for it, processing fails instead of awarding an incorrect number of points.
-
 Example:
 
 ```text
-Smile tier:
+Smile returns:
 Gold Buckle
 
-        ↓
+      ↓
 
 Normalized:
 gold buckle
 
-        ↓
+      ↓
 
-Durango config:
+Durango:
 reviewApproved["gold buckle"]
 
-        ↓
+      ↓
 
 100 points
 ```
 
+If no configured reward exists for the returned tier name, processing throws an error rather than awarding an incorrect value.
+
 ---
 
-# Idempotency
+## Smile Points Transaction
 
-Upstash Redis prevents the same review event from awarding points more than once.
-
-The event key is generated using:
+Points are awarded through:
 
 ```text
-source + reviewId + eventType
+POST /points_transactions
+```
+
+with a payload similar to:
+
+```json
+{
+  "points_transaction": {
+    "customer_id": 123456,
+    "points_change": 100,
+    "description": "BazaarVoice Review",
+    "internal_note": "BazaarVoice Review"
+  }
+}
+```
+
+The current processor passes the customer ID and calculated points into `awardSmilePoints()`.
+
+Although each brand configuration contains:
+
+```ts
+smile: {
+  description: "...",
+  internalNote: "..."
+}
+```
+
+those brand-specific values are not currently passed into `awardSmilePoints()`.
+
+As a result, the current points transaction uses the default:
+
+```text
+BazaarVoice Review
+```
+
+for both the description and internal note.
+
+---
+
+## Idempotency
+
+Upstash Redis is used to prevent duplicate point awards.
+
+The base event key is:
+
+```text
+source:reviewId:eventType
 ```
 
 Example:
@@ -427,78 +505,101 @@ Example:
 bazaarvoice:305983004:review.approved
 ```
 
-Two Redis keys are used.
+Two Redis records are used.
 
-## Processing Lock
+### Processing Lock
 
 ```text
 processing:bazaarvoice:305983004:review.approved
 ```
 
-The processing lock prevents multiple webhook deliveries from processing the same event simultaneously.
+The processing lock:
 
-The lock has a short TTL.
+- prevents simultaneous processing of the same event
+- uses Redis `NX`
+- expires after 5 minutes
 
-## Completed Event
+### Completed Record
 
 ```text
 completed:bazaarvoice:305983004:review.approved
 ```
 
-The completed key is written only after Smile successfully awards the points.
+The completed record:
 
-This prevents the following failure:
+- is written only after successful processing
+- expires after 7 days
 
-```text
-Mark processed
-      ↓
-Smile fails
-      ↓
-Bazaarvoice retries
-      ↓
-Event incorrectly skipped
-```
-
-Instead, the current flow is:
-
-```text
-Acquire processing lock
-      ↓
-Process event
-      ↓
-Award Smile points
-      ↓
-Mark completed
-      ↓
-Release processing lock
-```
-
-If processing fails:
-
-```text
-Acquire processing lock
-      ↓
-Failure
-      ↓
-Do NOT mark completed
-      ↓
-Release processing lock
-      ↓
-Allow future retry
-```
+The completed key is intentionally not written when processing fails.
 
 ---
 
-# Logging
+## Approved Review Processing Flow
 
-The application uses structured event logging.
+```text
+Bazaarvoice approved-review webhook
+        │
+        ▼
+Netlify Function
+        │
+        ▼
+Normalize + Zod validation
+        │
+        ▼
+Check completed Redis key
+        │
+        ├── exists ──► DUPLICATE_SKIPPED
+        │
+        ▼
+Acquire processing lock
+        │
+        ▼
+Bazaarvoice Reviews API
+        │
+        ▼
+Retrieve UserEmailAddress
+        │
+        ▼
+Decrypt email
+        │
+        ▼
+Smile customer lookup
+        │
+        ▼
+Read vip_tier_id
+        │
+        ▼
+Resolve VIP tier name
+        │
+        ▼
+Brand reward configuration
+        │
+        ▼
+Calculate points
+        │
+        ▼
+Smile points transaction
+        │
+        ▼
+Mark completed
+        │
+        ▼
+Release processing lock
+```
 
-Typical statuses include:
+If any processing step throws an error, the completed key is not created and the processing lock is released.
+
+---
+
+## Logging
+
+The structured application logger supports statuses including:
 
 ```text
 RECEIVED
-POINTS_CALCULATED
+VALIDATED
 CUSTOMER_FOUND
+POINTS_CALCULATED
 POINTS_AWARDED
 FAILED
 DUPLICATE_SKIPPED
@@ -508,26 +609,28 @@ Example:
 
 ```json
 {
-  "timestamp": "2026-08-25T17:59:40.418Z",
+  "timestamp": "2026-10-14T18:00:00.000Z",
   "reviewId": "305983004",
-  "brand": "rocky",
+  "brand": "durango",
   "eventType": "review.approved",
   "rewardPoints": 100,
   "status": "POINTS_AWARDED"
 }
 ```
 
-Sensitive customer information should not be included in permanent logs.
+### Current debugging note
+
+The current processor includes the decrypted `customerEmail` in the `CUSTOMER_FOUND` log entry, and the Smile customer integration logs the full Smile customer-search response.
+
+These debug logs should be removed or sanitized before treating the implementation as production-safe for customer PII.
 
 ---
 
-# Environment Variables
+## Environment Variables
 
-The application requires Bazaarvoice, Smile.io, Redis, and API URL configuration.
+### Bazaarvoice
 
-Never commit `.env` files or API credentials to source control.
-
-## Bazaarvoice
+The currently fully wired brands require:
 
 ```env
 BV_API_URL=
@@ -548,9 +651,7 @@ BV_API_KEY_XTRATUF=
 BV_EMAIL_SHARED_KEY_XTRATUF=
 ```
 
-Additional brand variables should follow the same naming convention.
-
-## Smile.io
+### Smile.io
 
 ```env
 SMILE_API_URL=
@@ -562,24 +663,18 @@ SMILE_MUCK_API_KEY=
 SMILE_XTRATUF_API_KEY=
 ```
 
-Additional brand API keys should follow the same pattern.
-
-## Redis / Upstash
-
-Configure the appropriate Upstash Redis credentials required by `src/integrations/redis.ts`.
-
-Example:
+### Upstash Redis
 
 ```env
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 ```
 
-Use the exact environment variable names expected by the Redis client implementation.
+Never commit real environment-variable values or API credentials.
 
 ---
 
-# Local Development
+## Local Development
 
 Install dependencies:
 
@@ -587,279 +682,177 @@ Install dependencies:
 npm install
 ```
 
-Create a local `.env` file containing the required development credentials.
+Create a local `.env` file containing the required credentials.
 
-Run TypeScript utilities using the configured npm scripts.
+The repository currently defines these npm scripts:
 
----
-
-# Local Decryption Test
-
-A review can be retrieved and decrypted locally using:
-
-```bash
+```text
+npm run validate
+npm run normalize
+npm run idempotency
+npm run reward
+npm run webhook-test
+npm run bazaarvoice-test
+npm run live-idempotency
+npm run process-event
 npm run decryption-test
+npm run vip-test
 ```
 
-The test:
-
-1. Selects a brand.
-2. Retrieves the review through Bazaarvoice.
-3. Gets the encrypted `UserEmailAddress`.
-4. Selects the appropriate brand shared key.
-5. Decrypts the email locally.
-
-This is useful when diagnosing Bazaarvoice encryption or API configuration issues.
-
 ---
 
-# VIP Tier Test
+## VIP Tier Test
 
-The Smile VIP integration can be tested independently.
+The Smile VIP lookup can be tested with:
 
 ```bash
 npm run vip-test
 ```
 
-The test should:
+The utility:
 
-1. Search Smile for a known customer.
-2. Read `vip_status.vip_tier_id`.
-3. Retrieve the configured VIP tiers.
-4. Resolve the tier ID to its tier name.
+1. Finds a Smile customer by email.
+2. Reads the customer's `vip_status.vip_tier_id`.
+3. Retrieves Smile VIP tiers.
+4. Resolves the matching tier name.
 
-Example output:
+A successful result resembles:
 
 ```text
-CUSTOMER:
-{
-  id: 123456,
-  vipStatus: {
-    vip_tier_id: 789
-  }
-}
-
-VIP RESULT:
-{
-  vipTierId: 789,
+VIP RESULT: {
+  vipTierId: 12345,
   vipTierName: "Gold Buckle"
 }
 ```
 
+Use test data rather than hard-coding real customer or employee PII into files committed to the repository.
+
 ---
 
-# End-to-End Processing Flow
+## Decryption Test
+
+Bazaarvoice email lookup and decryption can be tested with:
+
+```bash
+npm run decryption-test
+```
+
+This is useful for confirming:
+
+- brand API configuration
+- review lookup
+- encrypted email retrieval
+- shared-key configuration
+- AES email decryption
+
+---
+
+## Netlify
+
+The project uses:
+
+```toml
+[build]
+command = "echo 'no build step'"
+functions = "netlify/functions"
+```
+
+The webhook function is located at:
 
 ```text
-Bazaarvoice
-Review Approved
-      │
-      ▼
-Netlify Webhook
-      │
-      ▼
-Validate Payload
-      │
-      ▼
-Normalize Event
-      │
-      ▼
-Check Completed Redis Key
-      │
-      ├──── Already completed
-      │          │
-      │          ▼
-      │    DUPLICATE_SKIPPED
-      │
-      ▼
-Acquire Processing Lock
-      │
-      ▼
-Bazaarvoice Reviews API
-      │
-      ▼
-Retrieve UserEmailAddress
-      │
-      ▼
-Decrypt Customer Email
-      │
-      ▼
-Smile Customer Search
-      │
-      ▼
-Read VIP Tier ID
-      │
-      ▼
-Resolve VIP Tier Name
-      │
-      ▼
-Brand Reward Config
-      │
-      ▼
-Calculate Reward
-      │
-      ▼
-Award Smile Points
-      │
-      ▼
-Mark Redis Event Completed
-      │
-      ▼
-Release Lock
+netlify/functions/bazaarvoice-webhook.ts
 ```
 
----
+Only POST requests are accepted.
 
-# Error Handling
-
-Events are not marked complete when processing fails.
-
-Common failure scenarios include:
-
-- Invalid Bazaarvoice webhook payload
-- Unsupported Bazaarvoice brand
-- Missing API credentials
-- Bazaarvoice review not yet available
-- Bazaarvoice API error
-- Email decryption failure
-- Smile customer not found
-- Smile VIP tier not found
-- VIP reward not configured for a brand
-- Smile points transaction failure
-
-When an error occurs:
+Non-POST requests return:
 
 ```text
-FAILED
+405 Method Not Allowed
 ```
 
-is logged and the processing lock is released.
-
-This allows Bazaarvoice to retry the webhook.
+Errors encountered while parsing, normalizing, validating, or processing the webhook currently return HTTP `500`.
 
 ---
 
-# Security
+## Adding a New Brand
 
-The integration handles customer PII and API credentials.
+To fully enable another brand:
 
-Important security requirements:
-
-- Never commit `.env` files.
-- Keep API keys in Netlify environment variables.
-- Keep Redis credentials in protected environment variables.
-- Do not log Bazaarvoice shared secrets.
-- Do not log Smile API keys.
-- Avoid permanently logging decrypted customer email addresses.
-- Do not include API credentials in error messages.
-- Keep brand credentials separated.
-
----
-
-# Adding a New Brand
-
-To add another brand:
-
-1. Add the brand to the internal brand type/schema.
-2. Add the Bazaarvoice `sourceClient` mapping.
-3. Add the brand's Bazaarvoice API key.
-4. Add the brand's Bazaarvoice email shared key.
-5. Add the brand's Smile API key.
-6. Create a brand configuration file.
-7. Add the brand config to `getBrandConfig.ts`.
-8. Configure VIP tier names and reward values.
-9. Add the brand to the appropriate Smile and Bazaarvoice configuration maps.
-10. Test Bazaarvoice review retrieval.
-11. Test email decryption.
-12. Test Smile customer lookup.
-13. Test VIP tier resolution.
-14. Complete an end-to-end review reward test.
-
-Example reward configuration:
-
-```ts
-rewards: {
-  reviewApproved: {
-    "tier one": 50,
-    "tier two": 75,
-    "tier three": 100,
-  },
-
-  reviewEdited: 10,
-}
-```
+1. Add the brand to the shared integration `Brand` type.
+2. Add the brand to `EventSchema`.
+3. Add its Bazaarvoice `sourceClient` mapping.
+4. Create or update its reward configuration.
+5. Add it to `getBrandConfig.ts`.
+6. Add its Smile API key mapping to `smileConfig.ts`.
+7. Add its Bazaarvoice API key and email shared key to `bazaarvoiceConfig.ts`.
+8. Add the required Netlify environment variables.
+9. Confirm its exact Smile VIP tier names.
+10. Test Bazaarvoice review retrieval and decryption.
+11. Test Smile customer lookup.
+12. Test Smile VIP tier resolution.
+13. Run an end-to-end approved-review test.
 
 ---
 
-# Important Implementation Notes
+## Current Limitations / Follow-Up Work
 
-### Bazaarvoice Email Field Casing
+The current repository still has several areas that can be improved:
 
-Webhook:
+- Ranger, SlipGrips, Lehigh Outfitters, and Lehigh Safety Shoes are not yet fully wired into the API integration configs.
+- Bazaarvoice review retrieval currently has no application-level retry/backoff.
+- `review.edited` reward logic exists, but no edited-review Bazaarvoice event is currently mapped.
+- Brand-specific Smile transaction descriptions and internal notes exist in configuration but are not currently passed to the Smile transaction client.
+- Debug logging currently contains customer PII and should be sanitized.
+- Invalid webhook payloads currently result in HTTP `500` rather than a dedicated `400` validation response.
+- Automated integration tests are not yet present.
+- Dead-letter/replay handling is not implemented.
+- Correlation IDs and monitoring could be expanded.
+
+---
+
+## Security
+
+This integration handles customer PII and credentials.
+
+Production deployments should:
+
+- store API keys and shared secrets only in protected environment variables
+- keep `.env` files out of source control
+- avoid logging decrypted customer email addresses
+- avoid logging complete Smile customer records
+- avoid hard-coding customer or employee emails in committed test files
+- avoid exposing Bazaarvoice shared keys
+- avoid exposing Smile API keys
+- avoid including credential values in thrown errors
+- keep credentials separated by brand
+
+---
+
+## Summary
+
+The current implementation provides an end-to-end Bazaarvoice → Smile.io approved-review reward flow for the five fully configured brands:
 
 ```text
-userEmailAddress
+Rocky
+Georgia Boot
+Durango
+Muck
+Xtratuf
 ```
 
-Reviews API:
-
-```text
-UserEmailAddress
-```
-
-JavaScript is case-sensitive, so these must be handled separately.
-
-### Do Not Mark Events Complete Early
-
-The Redis completed key must only be written after the Smile points transaction succeeds.
-
-### Bazaarvoice Reviews API May Lag Behind Webhooks
-
-Receiving a Bazaarvoice webhook does not guarantee that the same review is immediately available through `/data/reviews.json`.
-
-The event should remain retryable if the API does not yet return the review.
-
-### VIP Tier Names Are Config Driven
-
-Do not hard-code Bronze, Silver, Gold, or other tier names in the reward engine.
-
-Each brand config should contain the exact normalized Smile tier names used by that brand.
-
----
-
-# Future Improvements
-
-Potential future improvements include:
-
-- Dead-letter queue for events that exceed retry limits
-- Additional structured monitoring and alerting
-- Improved correlation IDs across Bazaarvoice, Smile, and Redis
-- Longer-term failed-event storage
-- Administrative replay capability
-- Automated integration tests
-- Brand configuration validation at startup
-- Centralized secrets management
-- Additional Bazaarvoice event support
-- Metrics/dashboard for awarded points and failures
-
----
-
-# Summary
-
-This integration provides a scalable multi-brand bridge between Bazaarvoice and Smile.io.
-
-It supports:
+It currently supports:
 
 - Bazaarvoice review webhooks
-- Multi-brand credentials
-- Encrypted customer email handling
+- webhook normalization and Zod validation
+- encrypted Bazaarvoice email retrieval and decryption
 - Smile customer lookup
-- Smile VIP tier rewards
-- Brand-specific reward configuration
-- Redis-based idempotency
-- Concurrent processing protection
-- Structured logging
-- Retry-safe failure handling
-- Netlify serverless deployment
+- Smile VIP tier lookup
+- brand-specific VIP reward values
+- Smile points transactions
+- Redis idempotency
+- temporary concurrent-processing locks
+- structured event logging
+- Netlify serverless execution
 
-The architecture keeps brand-specific business rules inside configuration files while keeping the core processing pipeline reusable across all supported brands.
+The reward architecture is intentionally configuration-driven so different brands can use different Smile VIP tier names without changing the core reward engine.

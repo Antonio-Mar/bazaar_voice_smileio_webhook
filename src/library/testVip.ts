@@ -7,13 +7,13 @@ import type { Brand } from "../config/smileConfig";
 async function run() {
   const brand: Brand = "durango";
 
-  const email = "william.reichle@rockybrands.com";
+  const email = process.env.SMILE_TEST_EMAIL;
 
-  const customer =
-    await getSmileCustomerByEmail(
-      email,
-      brand
-    );
+  if (!email) {
+    throw new Error("Missing SMILE_TEST_EMAIL");
+  }
+
+  const customer = await getSmileCustomerByEmail(email, brand);
 
   console.log("CUSTOMER:", {
     id: customer.id,
@@ -21,20 +21,13 @@ async function run() {
     vipStatus: customer.vip_status,
   });
 
-  const vipTierId =
-    customer.vip_status?.vip_tier_id;
+  const vipTierId = customer.vip_status?.vip_tier_id;
 
   if (vipTierId == null) {
-    throw new Error(
-      `Customer ${customer.id} has no VIP tier`
-    );
+    throw new Error(`Customer ${customer.id} has no VIP tier`);
   }
 
-  const vipTierName =
-    await getSmileVipTierName(
-      brand,
-      vipTierId
-    );
+  const vipTierName = await getSmileVipTierName(brand, vipTierId);
 
   console.log("VIP RESULT:", {
     vipTierId,
