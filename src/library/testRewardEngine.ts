@@ -1,26 +1,33 @@
 import { transformToInternalEvent } from "../normalizers/bazaarvoice.normalizer";
 import { calculateReward } from "./rewardEngine";
-import { getBrandConfig } from "../config/getBrandConfig";
-import "./bootstrap"
+import "./bootstrap";
 
 const rawPayload = {
-  event: "review_approved",
-  brand: "rocky",
-  review: {
-    id: "rev_123",
-    productId: "sku_987",
-    rating: 5,
-    locale: "en_US",
-    createdAt: "2026-05-21T16:00:00Z",
+  Metadata: {
+    eventType: "cgc.review.status.approved.v1",
+    occurredAt: "2026-05-21T16:00:00Z",
   },
-  customer: {
-    email: "test@example.com",
+
+  CurrentState: {
+    id: "rev_123",
+    rating: 5,
+    contentLocale: "en_US",
+    sourceClient: "rockyboots",
+    userEmailAddress: "TEST_ENCRYPTED_EMAIL",
+
+    SubjectProduct: {
+      productId: "sku_987",
+    },
   },
 };
 
+const event =
+  transformToInternalEvent(rawPayload);
 
-const event = transformToInternalEvent(rawPayload);
-
-const decision = calculateReward(event);
+const decision =
+  calculateReward(
+    event,
+    "gold"
+  );
 
 console.log(decision);
